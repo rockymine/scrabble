@@ -254,6 +254,7 @@ small { font-size: 0.75em; }
 .word-hint { min-height: 1.4em; font-size: 0.9rem; font-weight: 600; }
 .word-hint.ok { color: var(--ok); }
 .word-hint.warn { color: var(--warn); }
+.word-hint.rare { color: var(--warn); }
 .word-hint.muted, .word-hint.pending { color: var(--muted); font-weight: 400; }
 
 .numpad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
@@ -385,6 +386,11 @@ small { font-size: 0.75em; }
 .word-result.ok { background: var(--ok-bg); color: var(--ok); }
 .word-result.warn { background: var(--warn-bg); color: var(--warn); }
 .word-result.muted, .word-result.pending { background: var(--bg); color: var(--muted); }
+.word-origin { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 10px; color: var(--ink); }
+.word-origin li { padding-top: 8px; border-top: 1px solid currentColor; border-color: var(--line); font-size: 0.95rem; }
+.word-origin .gloss { color: var(--muted); }
+.word-origin .marks { color: var(--warn); font-weight: 600; font-size: 0.85rem; }
+.rare-note { margin: 8px 0 0; color: var(--warn); font-weight: 600; }
 .recent-words { list-style: none; margin: 0; padding: 0; }
 .recent-words li { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--line); }
 .recent-words li span:first-child { font-weight: 700; letter-spacing: 0.04em; }

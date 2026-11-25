@@ -5,7 +5,7 @@ import {
 import { db, validateBackup } from './db.js';
 import * as G from './game.js';
 import { computeStats } from './stats.js';
-import { checkWord, wordCheckSupported, downloadAll, offlineStatus, loadIndex } from './words.js';
+import { checkWord, wordCheckSupported, downloadAll, offlineStatus, loadIndex, wordInfo, describeInfo } from './words.js';
 import { normalizeWord } from './normalize.js';
 
 export const APP_VERSION = '1.0.0';
@@ -122,6 +122,12 @@ function wordHint(input) {
     if (r.status === 'found') {
       el.className = 'word-hint ok';
       el.textContent = '✓ Steht in der Wortliste';
+      // Herkunft kurz anhängen (z. B. „Genitiv Singular von Glast (poetisch)“)
+      wordInfo(v).then((info) => {
+        if (my !== seq || !info.length) return;
+        el.textContent = `✓ ${describeInfo(info[0])}`;
+        if (info.some((x) => x.rare) && !info.some((x) => !x.rare)) el.className = 'word-hint ok rare';
+      });
     } else if (r.status === 'missing') {
       el.className = 'word-hint warn';
       el.textContent = 'Nicht in der Wortliste – zählt trotzdem, wenn ihr es gelten lasst';
@@ -1133,6 +1139,20 @@ async function wordView() {
     if (r.status === 'found') {
       result.className = 'word-result ok';
       result.replaceChildren(h('strong', null, r.word), h('span', null, '✓ steht in der Wortliste'));
+      const info = await wordInfo(r.word);
+      if (info.length) {
+        const rareOnly = info.every((x) => x.rare);
+        result.append(...[
+          h('ul', { class: 'word-origin' },
+            info.map((x) =>
+              h('li', null,
+                h('b', null, x.lemma), ' ', h('span', { class: 'muted' }, x.pos),
+                x.forms && !x.forms.startsWith('Grundform') ? h('div', null, x.forms) : null,
+                x.gloss ? h('div', { class: 'gloss' }, x.gloss) : null,
+                x.marks.length ? h('div', { class: 'marks' }, x.marks.join(' · ')) : null))),
+          rareOnly ? h('p', { class: 'rare-note' }, 'Selten, veraltet oder regional – am Tisch vorher absprechen.') : null,
+        ].filter(Boolean));
+      }
     } else if (r.status === 'missing') {
       result.className = 'word-result warn';
       result.replaceChildren(h('strong', null, r.word), h('span', null, 'nicht in der Wortliste gefunden'));
@@ -1159,8 +1179,9 @@ async function wordView() {
         h('div', { class: 'inline-form' }, input, h('button', { class: 'btn primary', onclick: run }, 'Prüfen')),
         result,
         h('p', { class: 'muted small' },
-          'Nur ein Hinweis! Die Liste enthält alle Formen aus dem deutschen Wiktionary, aber nicht jedes gültige Wort – ',
-          'z. B. fehlen oft Genitive wie „ANPOCHENS“. Was am Tisch gilt, entscheidet ihr.'),
+          'Nur ein Hinweis! Die Liste enthält alle Formen aus dem deutschen Wiktionary – auch seltene, veraltete und regionale –, ',
+          'aber nicht jedes gültige Wort; z. B. fehlen oft Genitive wie „ANPOCHENS“. Was am Tisch gilt, entscheidet ihr. ',
+          'Die Herkunft (Grundform und Bedeutung) braucht beim ersten Mal je Anfangsbuchstabe Internet.'),
         !wordCheckSupported ? h('p', { class: 'error' }, 'Dieser Browser ist zu alt für die Wortprüfung.') : null),
       checkedWords.length ? card(h('h2', null, 'Zuletzt geprüft'), recent) : null),
     onMount: () => input.focus(),

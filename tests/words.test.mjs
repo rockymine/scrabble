@@ -40,3 +40,20 @@ test('Wortliste: Dateien sind sortiert und eindeutig', () => {
   }
   assert.equal(total, index.count);
 });
+
+import { findInfoLine, parseInfoLine, describeInfo } from '../js/words.js';
+const infoShard = (k) => zlib.gunzipSync(fs.readFileSync(new URL(index.info[k].file, dir))).toString('utf8');
+const info = (w) => parseInfoLine(findInfoLine(infoShard(shardKey(w)), w));
+
+test('Herkunft: Grundform, Form, Markierungen', () => {
+  const glasts = info('GLASTS');
+  assert.equal(glasts[0].lemma, 'Glast');
+  assert.match(glasts[0].forms, /Genitiv Singular/);
+  assert.ok(glasts[0].rare);
+  assert.equal(describeInfo(glasts[0]), 'Genitiv Singular von Glast (süddeutsch, poetisch)');
+  const liebtest = info('LIEBTEST');
+  assert.equal(liebtest[0].lemma, 'lieben');
+  assert.equal(liebtest[0].rare, false);
+  // Formen von Ortsnamen gehören nicht in die Liste
+  assert.equal(findInfoLine(infoShard('L'), 'LEUNS'), null);
+});
