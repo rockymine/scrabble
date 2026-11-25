@@ -1,6 +1,6 @@
 {
-  "version": "20261125-079bcb27",
-  "generated": "2026-11-25T19:49:01.357Z",
+  "version": "20261125-6712533a",
+  "generated": "2026-11-25T19:59:36.986Z",
   "dumpDate": "2026-11-01",
   "source": "Deutschsprachiges Wiktionary über kaikki.org (Wiktextract)",
   "sourceUrl": "https://kaikki.org/dewiktionary/",
@@ -158,121 +158,121 @@
   "info": {
     "A": {
       "file": "info/A.txt.gz",
-      "bytes": 1134733
+      "bytes": 1136521
     },
     "AE": {
       "file": "info/AE.txt.gz",
-      "bytes": 18466
+      "bytes": 18489
     },
     "B": {
       "file": "info/B.txt.gz",
-      "bytes": 724951
+      "bytes": 726281
     },
     "C": {
       "file": "info/C.txt.gz",
-      "bytes": 114058
+      "bytes": 114278
     },
     "D": {
       "file": "info/D.txt.gz",
-      "bytes": 411047
+      "bytes": 411871
     },
     "E": {
       "file": "info/E.txt.gz",
-      "bytes": 582515
+      "bytes": 583461
     },
     "F": {
       "file": "info/F.txt.gz",
-      "bytes": 473792
+      "bytes": 474737
     },
     "G": {
       "file": "info/G.txt.gz",
-      "bytes": 660120
+      "bytes": 661272
     },
     "H": {
       "file": "info/H.txt.gz",
-      "bytes": 607383
+      "bytes": 608421
     },
     "I": {
       "file": "info/I.txt.gz",
-      "bytes": 154945
+      "bytes": 155266
     },
     "J": {
       "file": "info/J.txt.gz",
-      "bytes": 72924
+      "bytes": 73118
     },
     "K": {
       "file": "info/K.txt.gz",
-      "bytes": 619806
+      "bytes": 620917
     },
     "L": {
       "file": "info/L.txt.gz",
-      "bytes": 313934
+      "bytes": 314517
     },
     "M": {
       "file": "info/M.txt.gz",
-      "bytes": 462647
+      "bytes": 463560
     },
     "N": {
       "file": "info/N.txt.gz",
-      "bytes": 277499
+      "bytes": 277968
     },
     "O": {
       "file": "info/O.txt.gz",
-      "bytes": 127711
+      "bytes": 127945
     },
     "OE": {
       "file": "info/OE.txt.gz",
-      "bytes": 16278
+      "bytes": 16308
     },
     "P": {
       "file": "info/P.txt.gz",
-      "bytes": 469725
+      "bytes": 470654
     },
     "Q": {
       "file": "info/Q.txt.gz",
-      "bytes": 34055
+      "bytes": 34148
     },
     "R": {
       "file": "info/R.txt.gz",
-      "bytes": 391131
+      "bytes": 391910
     },
     "S": {
       "file": "info/S.txt.gz",
-      "bytes": 1054198
+      "bytes": 1055972
     },
     "T": {
       "file": "info/T.txt.gz",
-      "bytes": 371088
+      "bytes": 371764
     },
     "U": {
       "file": "info/U.txt.gz",
-      "bytes": 299651
+      "bytes": 300122
     },
     "UE": {
       "file": "info/UE.txt.gz",
-      "bytes": 74284
+      "bytes": 74439
     },
     "V": {
       "file": "info/V.txt.gz",
-      "bytes": 488297
+      "bytes": 489168
     },
     "W": {
       "file": "info/W.txt.gz",
-      "bytes": 410604
+      "bytes": 411273
     },
     "X": {
       "file": "info/X.txt.gz",
-      "bytes": 8261
+      "bytes": 8274
     },
     "Y": {
       "file": "info/Y.txt.gz",
-      "bytes": 6376
+      "bytes": 6389
     },
     "Z": {
       "file": "info/Z.txt.gz",
-      "bytes": 368960
+      "bytes": 369562
     }
   },
   "bytes": 1682918,
-  "infoBytes": 10749439
+  "infoBytes": 10768605
 }

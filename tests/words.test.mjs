@@ -57,3 +57,22 @@ test('Herkunft: Grundform, Form, Markierungen', () => {
   // Formen von Ortsnamen gehören nicht in die Liste
   assert.equal(findInfoLine(infoShard('L'), 'LEUNS'), null);
 });
+
+import { applyRules, DEFAULT_RULES } from '../js/words.js';
+
+test('Hausregeln: Kurzwörter, seltene Wörter, eigene Ausnahmen', () => {
+  const kita = info('KITA');
+  assert.ok(kita.every((x) => x.short));
+  assert.equal(applyRules('KITA', 'found', kita, DEFAULT_RULES).verdict, 'ok');
+  assert.equal(applyRules('KITA', 'found', kita, { shortForms: false }).verdict, 'deny');
+  // UNI hat auch eine normale Bedeutung („einheitliche Färbung“) → bleibt erlaubt
+  assert.equal(applyRules('UNI', 'found', info('UNI'), { shortForms: false }).verdict, 'ok');
+  const glasts = info('GLASTS');
+  assert.equal(applyRules('GLASTS', 'found', glasts, DEFAULT_RULES).verdict, 'warn');
+  assert.equal(applyRules('GLASTS', 'found', glasts, { rare: 'deny' }).verdict, 'deny');
+  assert.equal(applyRules('GLASTS', 'found', glasts, { rare: 'allow' }).verdict, 'ok');
+  // eigene Ausnahmen schlagen alles
+  assert.equal(applyRules('ANPOCHENS', 'missing', [], { allow: ['anpochens'] }).verdict, 'ok');
+  assert.equal(applyRules('HAUS', 'found', info('HAUS'), { deny: ['Haus'] }).verdict, 'deny');
+  assert.equal(applyRules('XQZ', 'missing', [], DEFAULT_RULES).verdict, 'missing');
+});

@@ -145,15 +145,15 @@ export function parseInfoLine(line) {
   const rest = line.slice(line.indexOf('\t') + 1);
   if (!rest) return [];
   return rest.split('\u001e').map((src) => {
-    const [lemma, pos, forms, marks, gloss, tr] = src.split('\u001f');
+    const [lemma, pos, forms, marks, gloss, tr, flags = ''] = src.split('\u001f');
     const markList = marks ? marks.split(', ') : [];
-    return { lemma, pos, forms, marks: markList, gloss, translations: Number(tr) || 0, rare: markList.some((m) => RARE.test(m)) };
+    return { lemma, pos, forms, marks: markList, gloss, translations: Number(tr) || 0, rare: markList.some((m) => RARE.test(m)), short: flags === 'K' };
   });
 }
 
 /** Kurzbeschreibung, z. B. „Genitiv Singular von Glast (süddeutsch, poetisch)“. */
 export function describeInfo(src) {
-  const form = !src.forms || src.forms.startsWith('Grundform') ? `${src.pos || 'Grundform'}` : `${src.forms.split(', ')[0]} von ${src.lemma}`;
+  const form = !src.forms || src.forms.startsWith('Grundform') ? `${src.lemma}${src.pos ? ', ' + src.pos : ''}` : `${src.forms.split(', ')[0]} von ${src.lemma}`;
   return form + (src.marks.length ? ` (${src.marks.join(', ')})` : '');
 }
 
@@ -178,4 +178,48 @@ export async function wordInfo(raw) {
   } catch {
     return [];
   }
+}
+
+// ---------- Hausregeln ----------
+
+/**
+ * Hausregeln für die Wortprüfung (Filter auf die Wortliste).
+ * Abkürzungen und Eigennamen (Orte, Länder, Flüsse, Personen) stehen ohnehin nie in der Liste.
+ *   shortForms: Kurzwörter wie KITA, KRIPO, AZUBI erlaubt?
+ *   rare:       seltene/veraltete/regionale Wörter: 'allow' | 'warn' | 'deny'
+ *   allow/deny: eigene Ausnahmen (normalisierte Wörter)
+ */
+export const DEFAULT_RULES = Object.freeze({ shortForms: true, rare: 'warn', allow: [], deny: [] });
+
+export function normalizeRules(r) {
+  const x = { ...DEFAULT_RULES, ...(r || {}) };
+  x.allow = [...new Set((x.allow || []).map(normalizeWord).filter(Boolean))].sort();
+  x.deny = [...new Set((x.deny || []).map(normalizeWord).filter(Boolean))].sort();
+  if (!['allow', 'warn', 'deny'].includes(x.rare)) x.rare = 'warn';
+  x.shortForms = x.shortForms !== false;
+  return x;
+}
+
+/** Urteil nach Hausregeln aus Prüfergebnis + Herkunft (reine Funktion, testbar). */
+export function applyRules(word, status, info, rules) {
+  const r = normalizeRules(rules);
+  if (r.deny.includes(word)) return { verdict: 'deny', reason: 'Bei euch nicht erlaubt (eigene Ausnahme)' };
+  if (r.allow.includes(word)) return { verdict: 'ok', reason: 'Bei euch erlaubt (eigene Ausnahme)', custom: true };
+  if (status !== 'found') return { verdict: status === 'missing' ? 'missing' : 'invalid', reason: '' };
+  let sources = info || [];
+  if (!r.shortForms && sources.length && sources.every((x) => x.short)) {
+    return { verdict: 'deny', reason: 'Kurzwort – laut Hausregel nicht erlaubt' };
+  }
+  if (!r.shortForms) sources = sources.filter((x) => !x.short);
+  const rareOnly = sources.length > 0 && sources.every((x) => x.rare);
+  if (rareOnly && r.rare === 'deny') return { verdict: 'deny', reason: 'Selten, veraltet oder regional – laut Hausregel nicht erlaubt' };
+  if (rareOnly && r.rare === 'warn') return { verdict: 'warn', reason: 'Selten, veraltet oder regional – am Tisch absprechen' };
+  return { verdict: 'ok', reason: '' };
+}
+
+/** Wort prüfen inkl. Herkunft und Hausregeln. */
+export async function judgeWord(raw, rules) {
+  const res = await checkWord(raw);
+  const info = res.status === 'found' ? await wordInfo(res.word) : [];
+  return { ...res, info, ...applyRules(res.word, res.status, info, rules) };
 }
