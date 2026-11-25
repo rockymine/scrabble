@@ -15,7 +15,7 @@
 // mindestens --min-uebersetzungen [10] Übersetzungen hat – Näherung für Alltagswörter).
 //
 // Aufruf: node tools/simulate.mjs [--partien 20] [--typ profi|gelegenheit|gemischt] [--seed 1]
-//                                 [--wortschatz alle|geläufig] [--json datei.jsonl]
+//                                 [--wortschatz alle|geläufig] [--zusatz QI,…] [--json datei.jsonl]
 
 import fs from 'node:fs';
 import zlib from 'node:zlib';
@@ -42,6 +42,8 @@ const value = (t) => (t === '?' ? 0 : LETTER_VALUES[t]);
 const dir = new URL('../words/de/', import.meta.url);
 const index = JSON.parse(fs.readFileSync(new URL('index.json', dir), 'utf8'));
 const VOCAB = opt('wortschatz', 'alle');
+// Zusätzliche Wörter für den Alltagswortschatz – QI ist bei uns Standard (Q ohne U loswerden)
+const EXTRA = String(opt('zusatz', 'QI')).split(',').map((w) => w.trim().toUpperCase()).filter(Boolean);
 const MIN_TR = Number(opt('min-uebersetzungen', 10));
 const RARE = /veraltet|poetisch|selten|regional|mundartlich|süddeutsch|norddeutsch|schweizerisch|österreichisch|bairisch/;
 const list = [];
@@ -58,7 +60,7 @@ if (VOCAB === 'alle') {
         const f = src.split('\u001f');
         return f.length >= 6 && !RARE.test(f[3]) && Number(f[5]) >= MIN_TR;
       });
-      if (ok) list.push(w);
+      if (ok || EXTRA.includes(w)) list.push(w);
     }
   }
 }
