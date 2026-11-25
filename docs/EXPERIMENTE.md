@@ -63,6 +63,22 @@ Trainingsmenge gespeichert.
 | Profi gegen 2 Gelegenheit | 332 : 161 | 32,5 / 17,3 | 3,8 / 3,0 | 0,80 / 0,01 | 30 |
 | echte Familienpartie (zum Vergleich) | 227 | 18,1 | 2,6 | 0 | 42 |
 
+Mit **Alltagswortschatz** (`--wortschatz geläufig`: Grundform nicht als selten,
+veraltet oder regional markiert und ≥ 10 Übersetzungen im Wiktionary;
+ca. 188.000 Wortformen):
+
+| Konstellation | Ø Endstand | Ø Punkte/Zug | Ø Steine/Zug | Bingos je Spieler | Züge je Partie |
+|---|---|---|---|---|---|
+| 3 Profis | 229 | 25,3 | 3,5 | 0,39 | 29 |
+| 3 Gelegenheitsspieler | 165 | 15,1 | 2,9 | 0,02 | 38 |
+| Profi gegen 2 Gelegenheit | 266 : 151 | 24,4 / 15,2 | 3,4 / 2,9 | 0,28 / 0,01 | 35 |
+
+Profi-Bots mit Alltagswortschatz landen im Schnitt fast genau beim Endstand der
+echten Familienpartie (229 zu 227). Wortarten auf den Endbrettern: bei der
+Familie 76 % geläufige Wörter, bei Bots mit ganzem Wiktionary nur rund 40 %.
+Das Maß „geläufig“ ist eine Näherung – kurze Scrabble-Klassiker wie QI, EX, NA
+gelten danach als selten.
+
 Beobachtungen: Die Profi-Bots kennen alle ~700.000 Wiktionary-Formen und legen
 daher auch Wörter, die am Tisch kaum jemand gelten ließe (z. B. WEPSISCH für 194).
 Die Familie spielt pro Zug fast genau wie die „Gelegenheitsspieler“, aber
