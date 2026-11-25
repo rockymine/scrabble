@@ -3,3 +3,4 @@ _site/
 *.jsonl
 *.jsonl.gz
 .DS_Store
+tools/viewer/games.json

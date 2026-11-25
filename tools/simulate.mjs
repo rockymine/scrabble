@@ -76,6 +76,7 @@ function playGame(types) {
 
   while (true) {
     const p = turn % n;
+    const rackBefore = racks[p].join('');
     const moves = generateMoves(grid, racks[p], isWord, { isPrefix });
     const m = chooseMove(moves, types[p]);
     if (m) {
@@ -85,7 +86,13 @@ function playGame(types) {
         racks[p].splice(racks[p].indexOf(l.blank ? '?' : l.letter), 1);
       }
       scores[p] += m.score;
-      log.push({ p, score: m.score, tiles: m.tiles.length, words: m.words.map((w) => w.word), bingo: m.bingo });
+      log.push({
+        p, score: m.score, tiles: m.tiles.length, words: m.words.map((w) => w.word), bingo: m.bingo,
+        rack: rackBefore,
+        // gelegte Steine: [Feld 0–224, Buchstabe, Blanko?]
+        placed: m.tiles.map((t, j) => [t, m.letters[j].letter, m.letters[j].blank ? 1 : 0]),
+        best: moves[0].score, options: moves.length,
+      });
       scoreless = 0;
       while (racks[p].length < 7 && bag.length) racks[p].push(bag.pop());
       if (!bag.length && bagEmptyAt === null) bagEmptyAt = log.length;
@@ -96,9 +103,9 @@ function playGame(types) {
         bag.push(...racks[p]);
         shuffle(bag);
         racks[p] = bag.splice(0, 7);
-        log.push({ p, score: null, exchange: true });
+        log.push({ p, score: null, exchange: true, rack: rackBefore });
       } else {
-        log.push({ p, score: null, pass: true });
+        log.push({ p, score: null, pass: true, rack: rackBefore });
       }
       scoreless++;
       if (scoreless >= 2 * n) break;

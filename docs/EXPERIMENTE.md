@@ -53,3 +53,29 @@ node tools/simulate.mjs --partien 100 --typ gemischt --json partien.jsonl
 
 Mit `--json` werden alle Partien (Züge, Punkte, Wörter, Bänke am Ende) als
 Trainingsmenge gespeichert.
+
+### Ergebnisse (je 40 simulierte Partien, 3 Spieler)
+
+| Konstellation | Ø Endstand | Ø Punkte/Zug | Ø Steine/Zug | Bingos je Spieler | Züge je Partie |
+|---|---|---|---|---|---|
+| 3 Profis | 282 | 34,5 | 3,9 | 0,89 | 25 |
+| 3 Gelegenheitsspieler | 193 | 17,5 | 2,9 | 0,01 | 34 |
+| Profi gegen 2 Gelegenheit | 332 : 161 | 32,5 / 17,3 | 3,8 / 3,0 | 0,80 / 0,01 | 30 |
+| echte Familienpartie (zum Vergleich) | 227 | 18,1 | 2,6 | 0 | 42 |
+
+Beobachtungen: Die Profi-Bots kennen alle ~700.000 Wiktionary-Formen und legen
+daher auch Wörter, die am Tisch kaum jemand gelten ließe (z. B. WEPSISCH für 194).
+Die Familie spielt pro Zug fast genau wie die „Gelegenheitsspieler“, aber
+deutlich mehr Züge (kleinteiliges Spiel: 2,6 Steine pro Zug).
+
+## 3. Spiel-Betrachter (`tools/viewer/`)
+
+```sh
+node tools/viewer-data.mjs --ausgabe tools/viewer/games.json \
+  --partie partie.json --sim partien.jsonl
+# dann tools/viewer/index.html über einen lokalen Webserver öffnen
+```
+
+Brett mit Steinen und Prämienfeldern, Zug für Zug abspielbar, Spielstand, Bank
+vor jedem Zug (bei der echten Partie: sicher bekannte Steine + unbekannte) und
+alle Wörter des Endbretts mit Prüfung gegen die Wortliste.
