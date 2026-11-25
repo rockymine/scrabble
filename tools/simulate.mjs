@@ -10,7 +10,12 @@
 // oder nach 6 Zügen ohne Punkte in Folge. Hausregel: Wer ausmacht, bekommt keine
 // Pluspunkte; alle anderen verlieren den Wert ihrer Reststeine.
 //
-// Aufruf: node tools/simulate.mjs [--partien 20] [--typ profi|gelegenheit|gemischt] [--seed 1] [--json datei.jsonl]
+// Wortschatz: --wortschatz alle (ganze Wiktionary-Liste) oder geläufig (nur Wörter,
+// deren Grundform nicht als selten/veraltet/regional markiert ist und im Wiktionary
+// mindestens --min-uebersetzungen [10] Übersetzungen hat – Näherung für Alltagswörter).
+//
+// Aufruf: node tools/simulate.mjs [--partien 20] [--typ profi|gelegenheit|gemischt] [--seed 1]
+//                                 [--wortschatz alle|geläufig] [--json datei.jsonl]
 
 import fs from 'node:fs';
 import zlib from 'node:zlib';
@@ -36,9 +41,26 @@ const value = (t) => (t === '?' ? 0 : LETTER_VALUES[t]);
 // Wortliste + Präfixsuche
 const dir = new URL('../words/de/', import.meta.url);
 const index = JSON.parse(fs.readFileSync(new URL('index.json', dir), 'utf8'));
+const VOCAB = opt('wortschatz', 'alle');
+const MIN_TR = Number(opt('min-uebersetzungen', 10));
+const RARE = /veraltet|poetisch|selten|regional|mundartlich|süddeutsch|norddeutsch|schweizerisch|österreichisch|bairisch/;
 const list = [];
-for (const s of Object.values(index.shards)) {
-  for (const w of zlib.gunzipSync(fs.readFileSync(new URL(s.file, dir))).toString('utf8').split('\n')) if (w) list.push(w);
+if (VOCAB === 'alle') {
+  for (const s of Object.values(index.shards)) {
+    for (const w of zlib.gunzipSync(fs.readFileSync(new URL(s.file, dir))).toString('utf8').split('\n')) if (w) list.push(w);
+  }
+} else {
+  for (const m of Object.values(index.info)) {
+    for (const line of zlib.gunzipSync(fs.readFileSync(new URL(m.file, dir))).toString('utf8').split('\n')) {
+      if (!line) continue;
+      const [w, rest = ''] = line.split('\t');
+      const ok = rest.split('\u001e').some((src) => {
+        const f = src.split('\u001f');
+        return f.length >= 6 && !RARE.test(f[3]) && Number(f[5]) >= MIN_TR;
+      });
+      if (ok) list.push(w);
+    }
+  }
 }
 list.sort();
 const wordSet = new Set(list);
@@ -117,7 +139,7 @@ function playGame(types) {
   // Hausregel
   const leftover = racks.map((r) => r.reduce((s, t) => s + value(t), 0));
   const final = scores.map((s, i) => (i === out ? s : s - leftover[i]));
-  return { types, scores, final, leftover, out, log, bagEmptyAt, rackLeft: racks.map((r) => r.join('')) };
+  return { types, vocab: VOCAB, scores, final, leftover, out, log, bagEmptyAt, rackLeft: racks.map((r) => r.join('')) };
 }
 
 const mean = (a) => a.reduce((s, x) => s + x, 0) / (a.length || 1);
@@ -136,7 +158,7 @@ for (let g = 0; g < GAMES; g++) {
 }
 
 // Auswertung je Spielertyp
-console.log(`\n${GAMES} Partien à ${results[0].types.length} Spieler, Typ: ${TYPE}`);
+console.log(`\n${GAMES} Partien à ${results[0].types.length} Spieler, Typ: ${TYPE}, Wortschatz: ${VOCAB} (${list.length} Wörter)`);
 for (const type of new Set(results.flatMap((r) => r.types))) {
   const finals = [];
   const turnScores = [];

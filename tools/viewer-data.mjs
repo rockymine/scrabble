@@ -23,6 +23,25 @@ for (const s of Object.values(index.shards)) {
   for (const w of zlib.gunzipSync(fs.readFileSync(new URL(s.file, dir))).toString('utf8').split('\n')) if (w) words.add(w);
 }
 
+// Herkunft je Wort (words/de/info) für die Anzeige
+const RARE = /veraltet|poetisch|selten|regional|mundartlich|süddeutsch|norddeutsch|schweizerisch|österreichisch|bairisch/;
+const infoMap = new Map();
+for (const m of Object.values(index.info || {})) {
+  for (const line of zlib.gunzipSync(fs.readFileSync(new URL(m.file, dir))).toString('utf8').split('\n')) {
+    const t = line.indexOf('\t');
+    if (t > 0) infoMap.set(line.slice(0, t), line.slice(t + 1));
+  }
+}
+function infoOf(w) {
+  const raw = infoMap.get(w);
+  if (!raw) return null;
+  const src = raw.split('\u001e').map((x) => x.split('\u001f')).filter((f) => f.length >= 6)
+    .map(([lemma, pos, forms, marks, gloss, tr]) => ({ lemma, pos, forms, marks, gloss, tr: Number(tr) || 0 }));
+  const common = src.some((x) => !RARE.test(x.marks) && x.tr >= 10);
+  const rare = src.length > 0 && src.every((x) => RARE.test(x.marks));
+  return { common, rare, src: src.slice(0, 2) };
+}
+
 /** Alle Wörter (≥ 2 Buchstaben) auf einem Brett, mit Prüfung gegen die Wortliste. */
 function boardWords(grid) {
   const out = [];
@@ -35,7 +54,7 @@ function boardWords(grid) {
         const cell = k < SIZE ? grid[i] : null;
         if (cell) { if (!w) start = i; w += cell.letter; }
         else {
-          if (w.length >= 2) out.push({ w, at: ROWS[Math.floor(start / SIZE)] + ((start % SIZE) + 1), dir: horizontal ? '→' : '↓', ok: words.has(w) });
+          if (w.length >= 2) out.push({ w, at: ROWS[Math.floor(start / SIZE)] + ((start % SIZE) + 1), dir: horizontal ? '→' : '↓', ok: words.has(w), info: infoOf(w) });
           w = '';
         }
       }
@@ -155,11 +174,12 @@ for (const spec of all('sim')) {
         pass: !!m.pass, exchange: !!m.exchange, bingo: !!m.bingo,
       };
     });
-    const kind = r.types.every((t) => t === 'profi') ? 'profi' : r.types.every((t) => t === 'gelegenheit') ? 'gelegenheit' : 'gemischt';
+    const base = r.types.every((t) => t === 'profi') ? 'profi' : r.types.every((t) => t === 'gelegenheit') ? 'gelegenheit' : 'gemischt';
+    const kind = r.vocab === 'geläufig' ? base + '-g' : base;
     games.push({
       id: `${kind}-${gi + 1}`,
       kind,
-      title: `${{ profi: 'Profis', gelegenheit: 'Gelegenheitsspieler', gemischt: 'Profi gegen zwei' }[kind]} #${gi + 1}`,
+      title: `${{ profi: 'Profis', gelegenheit: 'Gelegenheitsspieler', gemischt: 'Profi gegen zwei' }[base]} #${gi + 1}`,
       players: r.types.map((t, i) => `${label[t]} ${String.fromCharCode(65 + i)}`),
       moves,
       final: r.final,
@@ -174,5 +194,6 @@ fs.writeFileSync(one('ausgabe') || 'games.json', JSON.stringify(games));
 console.log(`${games.length} Partien geschrieben (${(fs.statSync(one('ausgabe') || 'games.json').size / 1024).toFixed(0)} KB)`);
 for (const g of games) {
   const bad = g.boardWords.filter((w) => !w.ok).map((w) => w.w);
-  console.log(`  ${g.title}: ${g.final.join(' / ')}  Wörter auf dem Brett: ${g.boardWords.length}, nicht in Liste: ${bad.join(', ') || '–'}`);
+  const unusual = g.boardWords.filter((w) => w.ok && !w.info?.common).map((w) => w.w);
+  console.log(`  [${g.kind}] ${g.title}: ${g.final.join(' / ')}  Wörter: ${g.boardWords.length}, nicht in Liste: ${bad.join(', ') || '–'}, ungewöhnlich: ${unusual.length}`);
 }

@@ -72,7 +72,19 @@ tr.row{cursor:pointer}tr.row:hover td{background:var(--panel)}
 tr.on td{background:color-mix(in srgb,var(--new) 16%,transparent)}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
 .chip{border-radius:8px;padding:3px 9px;font-weight:600;font-size:14px;letter-spacing:.03em;border:1px solid var(--line)}
+.chip{cursor:pointer;background:var(--bg);color:var(--ink);font-family:inherit}
+.chip:hover{border-color:var(--board)}
+.chip.odd{border-style:dashed;border-color:var(--warn)}
 .chip.bad{border-color:var(--warn);color:var(--warn)}
+.chip.sel{outline:2px solid var(--board);outline-offset:1px}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:13px;color:var(--mute);margin:6px 0 10px}
+.legend span::before{content:"";display:inline-block;width:14px;height:10px;border-radius:3px;margin-right:5px;border:1px solid var(--line);vertical-align:-1px}
+.legend .l2::before{border:1px dashed var(--warn)}.legend .l3::before{border:1px solid var(--warn);background:color-mix(in srgb,var(--warn) 20%,transparent)}
+.wdetail{background:var(--panel);border-radius:12px;padding:12px 14px;margin-bottom:12px;font-size:15px}
+.wdetail b{font-size:17px;letter-spacing:.03em}
+.wdetail .src{margin-top:8px;padding-top:8px;border-top:1px solid var(--line)}
+.wdetail .mk{color:var(--warn);font-weight:600;font-size:13px}
+.wdetail .gl{color:var(--mute)}
 .chip i{font-style:normal;font-weight:400;color:var(--mute);font-size:12px;margin-left:4px}
 .err{color:var(--warn)}
 @media(max-width:600px){table{font-size:13px}th,td{padding:6px 5px}.rt{width:30px;height:32px}}
@@ -105,7 +117,9 @@ tr.on td{background:color-mix(in srgb,var(--new) 16%,transparent)}
   </div>
   <div class="lower">
     <div><h3>Alle Züge</h3><div class="scroll"><table><thead><tr><th>R</th><th>Spieler</th><th>Wörter</th><th class="n">Punkte</th></tr></thead><tbody id="list"></tbody></table></div></div>
-    <div><h3>Wörter auf dem Endbrett</h3><p class="meta" id="wsum"></p><div class="chips" id="words"></div></div>
+    <div><h3>Wörter auf dem Endbrett</h3><p class="meta" id="wsum"></p>
+      <div class="legend"><span class="l1">geläufig</span><span class="l2">selten, fachsprachlich, regional</span><span class="l3">nicht in der Wortliste</span></div>
+      <div class="wdetail" id="wdetail" hidden></div><div class="chips" id="words"></div></div>
   </div>
 </div>
 
@@ -117,7 +131,8 @@ const CLS={d:'dl',t:'tl',w:'dw',W:'tw'},LBL={d:'2×B',t:'3×B',w:'2×W',W:'3×W'
 const ROWS='ABCDEFGHIJKLMNO';
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const $=id=>document.getElementById(id);
-const KIND={echt:'Echte Partie',alternativ:'Gleicher Zettel, anderes Brett',profi:'Simuliert: drei Profis',gelegenheit:'Simuliert: drei Gelegenheitsspieler',gemischt:'Simuliert: ein Profi gegen zwei Gelegenheitsspieler'};
+const KIND={echt:'Echte Partie',alternativ:'Gleicher Zettel, anderes Brett','profi-g':'Alltagswortschatz: drei Profis','gelegenheit-g':'Alltagswortschatz: drei Gelegenheitsspieler','gemischt-g':'Alltagswortschatz: ein Profi gegen zwei',profi:'Ganzes Wiktionary: drei Profis',gelegenheit:'Ganzes Wiktionary: drei Gelegenheitsspieler',gemischt:'Ganzes Wiktionary: ein Profi gegen zwei'};
+const ORDER=['echt','alternativ','profi-g','gelegenheit-g','gemischt-g','profi','gelegenheit','gemischt'];
 let games=[],g=null,step=0,timer=null;
 const cells=[];
 
@@ -130,26 +145,25 @@ function summary(){
   const f=[];
   const echt=by('echt')[0];
   if(echt)f.push([Math.round(mean(echt.final)),'Ø Endstand eure Partie']);
-  const pr=by('profi');if(pr.length)f.push([Math.round(mean(pr.flatMap(x=>x.final))),`Ø drei Profis (${pr.length} Partien)`]);
-  const ge=by('gelegenheit');if(ge.length)f.push([Math.round(mean(ge.flatMap(x=>x.final))),`Ø drei Gelegenheitsspieler (${ge.length})`]);
-  const mi=by('gemischt');if(mi.length)f.push([`${Math.round(mean(mi.map(x=>x.final[0])))} : ${Math.round(mean(mi.flatMap(x=>x.final.slice(1))))}`,'Profi gegen Gelegenheit']);
+  const avg=(k,label)=>{const x=by(k);if(x.length)f.push([Math.round(mean(x.flatMap(y=>y.final))),label])};
+  avg('profi-g','Ø Profi-Bots, Alltagswörter');avg('gelegenheit-g','Ø Gelegenheit, Alltagswörter');
+  avg('profi','Ø Profi-Bots, ganzes Wiktionary');avg('gelegenheit','Ø Gelegenheit, ganzes Wiktionary');
   const per=k=>{const m=by(k).flatMap(x=>x.moves).filter(m=>m.score!=null);return mean(m.map(m=>m.score)).toFixed(1).replace('.',',')};
   if(echt)f.push([per('echt'),'Punkte pro Zug bei euch']);
-  if(pr.length)f.push([per('profi'),'Punkte pro Zug Profi']);
   $('figs').innerHTML=f.map(([b,s])=>`<div class="fg"><b>${esc(b)}</b><span>${esc(s)}</span></div>`).join('');
 }
 
 function fillSelect(){
   const groups={};
   games.forEach((x,i)=>(groups[x.kind]??=[]).push(i));
-  $('game').innerHTML=Object.entries(groups).map(([k,ids])=>`<optgroup label="${esc(KIND[k]||k)}">${ids.map(i=>`<option value="${i}">${esc(games[i].title)} – ${esc(games[i].final.join(' / '))}</option>`).join('')}</optgroup>`).join('');
+  $('game').innerHTML=Object.entries(groups).sort((a,b)=>ORDER.indexOf(a[0])-ORDER.indexOf(b[0])).map(([k,ids])=>`<optgroup label="${esc(KIND[k]||k)}">${ids.map(i=>`<option value="${i}">${esc(games[i].title)} – ${esc(games[i].final.join(' / '))}</option>`).join('')}</optgroup>`).join('');
 }
 
 function open(i,keepStep){
   g=games[i];$('game').value=i;
   $('step').max=g.moves.length;
   step=keepStep?Math.min(step,g.moves.length):g.moves.length;
-  $('note').textContent=g.note||(g.kind==='echt'?'':'Bänke sind bekannt, weil simuliert.');
+  $('note').textContent=g.note||(g.kind.endsWith('-g')?'Simuliert mit Alltagswortschatz (keine seltenen, veralteten oder regionalen Wörter). Bänke sind bekannt.':'Simuliert mit der ganzen Wiktionary-Liste. Bänke sind bekannt.');
   try{history.replaceState(null,'','#'+g.id)}catch(e){}
   renderList();renderWords();render();
 }
@@ -197,10 +211,20 @@ function render(){
 function renderList(){
   $('list').innerHTML=g.moves.map((m,k)=>`<tr class="row" data-k="${k}"><td>${m.round}</td><td>${esc(g.players[m.p])}</td><td>${m.score==null?(m.exchange?'getauscht':'ausgesetzt'):esc(m.words.map(w=>w[0]).join(', '))}${m.unsure?' ⇄':''}</td><td class="n">${m.score??'–'}</td></tr>`).join('');
 }
+const cls=w=>!w.ok?'bad':w.info&&w.info.common?'':'odd';
 function renderWords(){
-  const ws=g.boardWords||[],bad=ws.filter(w=>!w.ok);
-  $('wsum').textContent=`${ws.length} Wörter, ${bad.length?bad.length+' nicht in der Wortliste (orange)':'alle in der Wortliste'}. Die Liste ist nur ein Hinweis.`;
-  $('words').innerHTML=ws.map(w=>`<span class="chip${w.ok?'':' bad'}" title="${esc(w.at+' '+w.dir)}">${esc(w.w)}<i>${esc(w.at)}${w.dir}</i></span>`).join('');
+  const ws=g.boardWords||[],bad=ws.filter(w=>!w.ok).length,odd=ws.filter(w=>w.ok&&!(w.info&&w.info.common)).length;
+  $('wsum').textContent=`${ws.length} Wörter: ${ws.length-bad-odd} geläufig, ${odd} selten oder speziell, ${bad} nicht in der Wortliste. Antippen zeigt die Herkunft.`;
+  $('words').innerHTML=ws.map((w,i)=>`<button class="chip ${cls(w)}" data-i="${i}">${esc(w.w)}<i>${esc(w.at)}${w.dir}</i></button>`).join('');
+  $('wdetail').hidden=true;
+}
+function showWord(i){
+  const w=g.boardWords[i];
+  document.querySelectorAll('#words .chip').forEach(c=>c.classList.toggle('sel',+c.dataset.i===i));
+  const d=$('wdetail');d.hidden=false;
+  if(!w.ok){d.innerHTML=`<b>${esc(w.w)}</b> <span class="meta">${esc(w.at)} ${w.dir}</span><div class="mk">Nicht in der Wortliste (Wiktionary).</div>`;return}
+  const src=(w.info&&w.info.src)||[];
+  d.innerHTML=`<b>${esc(w.w)}</b> <span class="meta">${esc(w.at)} ${w.dir}</span>`+src.map(x=>`<div class="src"><strong>${esc(x.lemma)}</strong> ${esc(x.pos)}${x.forms&&!x.forms.startsWith('Grundform')?` · ${esc(x.forms.split(', ')[0])}`:''}${x.gloss?`<div class="gl">${esc(x.gloss)}</div>`:''}${x.marks?`<div class="mk">${esc(x.marks)}</div>`:''}</div>`).join('')+(w.info&&!w.info.common?`<div class="mk" style="margin-top:6px">Kein Alltagswort – am Tisch vermutlich umstritten.</div>`:'');
 }
 
 const go=s=>{step=Math.max(0,Math.min(g.moves.length,s));render()};
@@ -210,6 +234,7 @@ $('prev').onclick=()=>{stop();go(step-1)};$('next').onclick=()=>{stop();go(step+
 $('step').oninput=e=>{stop();go(+e.target.value)};
 $('play').onclick=()=>{if(timer)return stop();if(step>=g.moves.length)go(0);$('play').textContent='Pause';timer=setInterval(()=>{if(step>=g.moves.length)return stop();go(step+1)},800)};
 $('game').onchange=e=>{stop();open(+e.target.value)};
+$('words').onclick=e=>{const c=e.target.closest('.chip');if(c)showWord(+c.dataset.i)};
 $('list').onclick=e=>{const r=e.target.closest('tr.row');if(r){stop();go(+r.dataset.k+1)}};
 document.addEventListener('keydown',e=>{if(e.target.tagName==='SELECT'||e.target.tagName==='INPUT')return;if(e.key==='ArrowRight'){stop();go(step+1)}if(e.key==='ArrowLeft'){stop();go(step-1)}});
 
