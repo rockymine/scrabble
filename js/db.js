@@ -92,25 +92,28 @@ export const db = {
 
   // --- Backup ---
   async exportAll() {
-    const [players, games] = await Promise.all([this.all('players'), this.all('games')]);
+    const [players, games, houseRules] = await Promise.all([this.all('players'), this.all('games'), this.getMeta('houseRules')]);
     return {
       app: 'familien-scrabble',
       format: 1,
       exportedAt: new Date().toISOString(),
       players,
       games,
+      settings: { houseRules: houseRules || null },
     };
   },
   /** Ersetzt ALLE Spieler und Partien durch den Inhalt der Sicherung. */
   async importAll(data) {
     validateBackup(data);
-    await tx(['players', 'games'], 'readwrite', (t) => {
+    await tx(['players', 'games', 'meta'], 'readwrite', (t) => {
       const ps = t.objectStore('players');
       const gs = t.objectStore('games');
       ps.clear();
       gs.clear();
       for (const p of data.players) ps.put(p);
       for (const g of data.games) gs.put(g);
+      // Hausregeln (ältere Sicherungen haben keine – dann bleiben die aktuellen)
+      if (data.settings?.houseRules) t.objectStore('meta').put(data.settings.houseRules, 'houseRules');
     });
   },
 };

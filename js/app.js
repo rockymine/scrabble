@@ -5,13 +5,13 @@ import {
 import { db, validateBackup } from './db.js';
 import * as G from './game.js';
 import { computeStats } from './stats.js';
-import { checkWord, wordCheckSupported, downloadAll, offlineStatus, loadIndex, wordInfo, describeInfo } from './words.js';
+import { wordCheckSupported, downloadAll, offlineStatus, loadIndex, describeInfo, judgeWord, normalizeRules } from './words.js';
 import { normalizeWord } from './normalize.js';
 
 export const APP_VERSION = '1.0.0';
 
 const root = document.getElementById('app');
-const state = { players: [], byId: {} };
+const state = { players: [], byId: {}, rules: normalizeRules(null) };
 
 async function loadPlayers() {
   state.players = await db.players();
@@ -36,6 +36,7 @@ const routes = [
   [/^spieler$/, playersView],
   [/^wort$/, wordView],
   [/^daten$/, dataView],
+  [/^hausregeln$/, rulesView],
 ];
 
 let cleanup = null;
@@ -106,7 +107,7 @@ function bigLink(href, label, sub, cls = '') {
   return h('a', { class: 'big-link ' + cls, href }, h('span', { class: 'big-link-label' }, label), sub ? h('span', { class: 'big-link-sub' }, sub) : null);
 }
 
-/** Live-Hinweis aus der Wortliste unter einem Eingabefeld. */
+/** Live-Hinweis aus der Wortliste (inkl. Herkunft und Hausregeln) unter einem Eingabefeld. */
 function wordHint(input) {
   const el = h('div', { class: 'word-hint', 'aria-live': 'polite' });
   let timer;
@@ -117,18 +118,19 @@ function wordHint(input) {
     if (!v) { el.className = 'word-hint'; el.textContent = ''; return; }
     el.className = 'word-hint pending';
     el.textContent = 'Prüfe …';
-    const r = await checkWord(v);
+    const r = await judgeWord(v, state.rules);
     if (my !== seq) return;
-    if (r.status === 'found') {
+    const desc = r.info?.length ? describeInfo(r.info[0]) : 'Steht in der Wortliste';
+    if (r.verdict === 'ok') {
       el.className = 'word-hint ok';
-      el.textContent = '✓ Steht in der Wortliste';
-      // Herkunft kurz anhängen (z. B. „Genitiv Singular von Glast (poetisch)“)
-      wordInfo(v).then((info) => {
-        if (my !== seq || !info.length) return;
-        el.textContent = `✓ ${describeInfo(info[0])}`;
-        if (info.some((x) => x.rare) && !info.some((x) => !x.rare)) el.className = 'word-hint ok rare';
-      });
-    } else if (r.status === 'missing') {
+      el.textContent = r.custom ? '✓ Bei euch erlaubt' : `✓ ${desc}`;
+    } else if (r.verdict === 'warn') {
+      el.className = 'word-hint rare';
+      el.textContent = `⚠ ${desc} – selten, am Tisch absprechen`;
+    } else if (r.verdict === 'deny') {
+      el.className = 'word-hint deny';
+      el.textContent = `✗ ${r.reason}`;
+    } else if (r.verdict === 'missing') {
       el.className = 'word-hint warn';
       el.textContent = 'Nicht in der Wortliste – zählt trotzdem, wenn ihr es gelten lasst';
     } else {
@@ -435,6 +437,7 @@ async function homeView() {
       bigLink('#/statistik', 'Statistik', 'Siege, Rekorde, Duelle'),
       bigLink('#/wort', 'Wort prüfen', 'Offline-Wortliste'),
       bigLink('#/nachtragen', 'Papierpartie nachtragen', 'Alte Zettel erfassen'),
+      bigLink('#/hausregeln', 'Hausregeln', 'Was bei euch als Wort gilt'),
       bigLink('#/spieler', 'Spieler', visiblePlayers().map((p) => p.name).join(', ') || 'Noch niemand angelegt'),
       bigLink('#/daten', 'Daten & Sicherung', 'Export, Import, Wortliste')),
     backupNote,
@@ -1119,6 +1122,13 @@ async function playersView() {
 
 const checkedWords = [];
 
+const VERDICT_TEXT = { ok: '✓ erlaubt', warn: '⚠ selten', deny: '✗ nicht erlaubt', missing: 'nicht in der Liste' };
+
+async function saveRules(next) {
+  state.rules = normalizeRules(next);
+  await db.setMeta('houseRules', state.rules);
+}
+
 async function wordView() {
   const input = wordInput({ placeholder: 'Wort eingeben', 'aria-label': 'Wort' });
   const result = h('div', { class: 'word-result', 'aria-live': 'polite' });
@@ -1126,41 +1136,53 @@ async function wordView() {
 
   function renderRecent() {
     recent.replaceChildren(
-      ...checkedWords.map((r) =>
-        h('li', { class: r.status }, h('span', null, r.word), h('span', null, r.status === 'found' ? '✓ gefunden' : r.status === 'missing' ? 'nicht gefunden' : r.reason || ''))),
+      ...checkedWords.map((r) => h('li', { class: r.verdict }, h('span', null, r.word), h('span', null, VERDICT_TEXT[r.verdict] || r.reason || ''))),
     );
+  }
+
+  function exceptionButtons(word) {
+    const inAllow = state.rules.allow.includes(word);
+    const inDeny = state.rules.deny.includes(word);
+    const set = async (allow, deny, msg) => {
+      await saveRules({ ...state.rules, allow, deny });
+      toast(msg);
+      run();
+    };
+    const without = (list) => list.filter((x) => x !== word);
+    return h('div', { class: 'exception-row' },
+      inAllow || inDeny
+        ? h('button', { class: 'btn small secondary', onclick: () => set(without(state.rules.allow), without(state.rules.deny), 'Ausnahme entfernt') }, 'Ausnahme entfernen')
+        : [
+          h('button', { class: 'btn small secondary', onclick: () => set([...state.rules.allow, word], state.rules.deny, `${word} gilt bei euch`) }, '✓ Bei uns erlaubt'),
+          h('button', { class: 'btn small secondary', onclick: () => set(state.rules.allow, [...state.rules.deny, word], `${word} gilt bei euch nicht`) }, '✗ Bei uns nicht erlaubt'),
+        ]);
   }
 
   async function run() {
     if (!input.value.trim()) return;
     result.className = 'word-result pending';
     result.textContent = 'Prüfe …';
-    const r = await checkWord(input.value);
-    if (r.status === 'found') {
-      result.className = 'word-result ok';
-      result.replaceChildren(h('strong', null, r.word), h('span', null, '✓ steht in der Wortliste'));
-      const info = await wordInfo(r.word);
-      if (info.length) {
-        const rareOnly = info.every((x) => x.rare);
-        result.append(...[
-          h('ul', { class: 'word-origin' },
-            info.map((x) =>
-              h('li', null,
-                h('b', null, x.lemma), ' ', h('span', { class: 'muted' }, x.pos),
-                x.forms && !x.forms.startsWith('Grundform') ? h('div', null, x.forms) : null,
-                x.gloss ? h('div', { class: 'gloss' }, x.gloss) : null,
-                x.marks.length ? h('div', { class: 'marks' }, x.marks.join(' · ')) : null))),
-          rareOnly ? h('p', { class: 'rare-note' }, 'Selten, veraltet oder regional – am Tisch vorher absprechen.') : null,
-        ].filter(Boolean));
-      }
-    } else if (r.status === 'missing') {
-      result.className = 'word-result warn';
-      result.replaceChildren(h('strong', null, r.word), h('span', null, 'nicht in der Wortliste gefunden'));
-    } else {
-      result.className = 'word-result muted';
-      result.replaceChildren(h('strong', null, r.word || '–'), h('span', null, r.reason || ''));
+    const r = await judgeWord(input.value, state.rules);
+    const head = {
+      ok: r.custom ? '✓ bei euch erlaubt (eigene Ausnahme)' : '✓ steht in der Wortliste',
+      warn: '⚠ steht in der Liste, ist aber selten, veraltet oder regional',
+      deny: `✗ ${r.reason}`,
+      missing: 'nicht in der Wortliste gefunden',
+    }[r.verdict] || r.reason || '';
+    result.className = 'word-result ' + ({ ok: 'ok', warn: 'warn', deny: 'deny', missing: 'warn' }[r.verdict] || 'muted');
+    const parts = [h('strong', null, r.word || '–'), h('span', null, head)];
+    if (r.info?.length) {
+      parts.push(h('ul', { class: 'word-origin' },
+        r.info.map((x) =>
+          h('li', null,
+            h('b', null, x.lemma), ' ', h('span', { class: 'muted' }, x.pos + (x.short ? ' · Kurzwort' : '')),
+            x.forms && !x.forms.startsWith('Grundform') ? h('div', null, x.forms) : null,
+            x.gloss ? h('div', { class: 'gloss' }, x.gloss) : null,
+            x.marks.length ? h('div', { class: 'marks' }, x.marks.join(' · ')) : null))));
     }
-    if (r.word && r.status !== 'invalid') {
+    if (r.word && r.verdict !== 'invalid') parts.push(exceptionButtons(r.word));
+    result.replaceChildren(...parts);
+    if (r.word && r.verdict !== 'invalid') {
       const i = checkedWords.findIndex((x) => x.word === r.word);
       if (i >= 0) checkedWords.splice(i, 1);
       checkedWords.unshift(r);
@@ -1179,12 +1201,72 @@ async function wordView() {
         h('div', { class: 'inline-form' }, input, h('button', { class: 'btn primary', onclick: run }, 'Prüfen')),
         result,
         h('p', { class: 'muted small' },
-          'Nur ein Hinweis! Die Liste enthält alle Formen aus dem deutschen Wiktionary – auch seltene, veraltete und regionale –, ',
-          'aber nicht jedes gültige Wort; z. B. fehlen oft Genitive wie „ANPOCHENS“. Was am Tisch gilt, entscheidet ihr. ',
+          'Nur ein Hinweis! Die Liste enthält die Formen aus dem deutschen Wiktionary, aber nicht jedes gültige Wort; ',
+          'z. B. fehlen oft Genitive wie „ANPOCHENS“. Was am Tisch gilt, entscheidet ihr – ',
+          h('a', { href: '#/hausregeln' }, 'eure Hausregeln'), ' werden berücksichtigt. ',
           'Die Herkunft (Grundform und Bedeutung) braucht beim ersten Mal je Anfangsbuchstabe Internet.'),
         !wordCheckSupported ? h('p', { class: 'error' }, 'Dieser Browser ist zu alt für die Wortprüfung.') : null),
       checkedWords.length ? card(h('h2', null, 'Zuletzt geprüft'), recent) : null),
     onMount: () => input.focus(),
+  };
+}
+
+// ======================================================================
+// Hausregeln
+// ======================================================================
+
+async function rulesView() {
+  const r = state.rules;
+  const choice = (label, sub, active, onclick) =>
+    h('button', { type: 'button', class: 'choice' + (active ? ' selected' : ''), 'aria-pressed': String(active), onclick },
+      label, sub ? h('small', { class: 'choice-sub' }, sub) : null);
+  const update = async (patch) => { await saveRules({ ...state.rules, ...patch }); toast('Hausregel gespeichert'); refresh(); };
+
+  const addInput = wordInput({ placeholder: 'Wort', 'aria-label': 'Wort für eigene Ausnahme' });
+  const addTo = async (key) => {
+    const w = normalizeWord(addInput.value);
+    if (!w) return;
+    const other = key === 'allow' ? 'deny' : 'allow';
+    await saveRules({ ...state.rules, [key]: [...state.rules[key], w], [other]: state.rules[other].filter((x) => x !== w) });
+    toast(key === 'allow' ? `${w} gilt bei euch` : `${w} gilt bei euch nicht`);
+    refresh();
+  };
+  const list = (key, empty) =>
+    r[key].length
+      ? h('div', { class: 'chip-list' }, r[key].map((w) =>
+        h('button', { class: 'chip', title: 'Entfernen', onclick: () => update({ [key]: r[key].filter((x) => x !== w) }) }, w, ' ✕')))
+      : h('p', { class: 'muted' }, empty);
+
+  return {
+    title: 'Hausregeln',
+    content: h('div', null,
+      card(
+        h('h2', null, 'Immer ausgeschlossen'),
+        h('p', null, 'In der Wortliste stehen nie: ', h('b', null, 'Abkürzungen'), ' (LKW, BH, PKW …) und ',
+          h('b', null, 'Eigennamen'), ' – Orte, Länder, Flüsse, Personen (BERLIN, IRLAND, RHEIN …).'),
+        h('p', { class: 'muted' }, 'Erlaubt sind dagegen z. B. Einwohner wie IRE oder ENGLÄNDER.')),
+      card(
+        h('h2', null, 'Kurzwörter (KITA, KRIPO, AZUBI)'),
+        h('div', { class: 'choice-list' },
+          choice('Erlaubt', 'z. B. KITA, AZUBI, UNI, KRIPO', r.shortForms, () => update({ shortForms: true })),
+          choice('Nicht erlaubt', 'Achtung: auch AUTO, KINO, FOTO, ZOO sind Kurzwörter', !r.shortForms, () => update({ shortForms: false })))),
+      card(
+        h('h2', null, 'Seltene, veraltete und regionale Wörter'),
+        h('p', { class: 'muted' }, 'z. B. GLASTS (poetisch, süddeutsch), DÄZ (mitteldeutsch für Kopf)'),
+        h('div', { class: 'choice-list' },
+          choice('Erlaubt', null, r.rare === 'allow', () => update({ rare: 'allow' })),
+          choice('Erlaubt, aber mit Hinweis', null, r.rare === 'warn', () => update({ rare: 'warn' })),
+          choice('Nicht erlaubt', null, r.rare === 'deny', () => update({ rare: 'deny' })))),
+      card(
+        h('h2', null, 'Eigene Ausnahmen'),
+        h('p', { class: 'muted' }, 'Wörter, über die ihr am Tisch entschieden habt – gelten vor allen anderen Regeln. Auch direkt bei „Wort prüfen“ setzbar.'),
+        h('div', { class: 'inline-form' }, addInput),
+        h('div', { class: 'button-row' },
+          h('button', { class: 'btn secondary', onclick: () => addTo('allow') }, '✓ Erlaubt'),
+          h('button', { class: 'btn secondary', onclick: () => addTo('deny') }, '✗ Nicht erlaubt')),
+        h('h2', null, 'Bei euch erlaubt'), list('allow', 'Noch keine – z. B. DAX oder ANPOCHENS.'),
+        h('h2', null, 'Bei euch nicht erlaubt'), list('deny', 'Noch keine.')),
+      h('p', { class: 'muted small' }, 'Die Hausregeln werden mit der Sicherung gespeichert.')),
   };
 }
 
@@ -1241,6 +1323,7 @@ async function dataView() {
     ))) return;
     await db.importAll(data);
     await loadPlayers();
+    state.rules = normalizeRules(await db.getMeta('houseRules'));
     toast('Sicherung eingespielt');
     refresh();
   });
@@ -1329,6 +1412,7 @@ async function prefetchWords() {
 async function main() {
   try {
     await loadPlayers();
+    state.rules = normalizeRules(await db.getMeta('houseRules'));
   } catch (e) {
     root.replaceChildren(frame({ title: 'Fehler', back: null, content: h('p', { class: 'error' }, 'Speicher nicht verfügbar: ', e.message) }));
     return;

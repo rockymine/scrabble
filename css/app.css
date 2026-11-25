@@ -255,6 +255,13 @@ small { font-size: 0.75em; }
 .word-hint.ok { color: var(--ok); }
 .word-hint.warn { color: var(--warn); }
 .word-hint.rare { color: var(--warn); }
+.word-hint.deny { color: var(--accent); }
+.word-result.deny { background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); }
+.exception-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.choice-sub { display: block; font-weight: 400; font-size: 0.85rem; color: var(--muted); margin-top: 2px; }
+.recent-words li.ok span:last-child { color: var(--ok); }
+.recent-words li.warn span:last-child { color: var(--warn); }
+.recent-words li.deny span:last-child { color: var(--accent); }
 .word-hint.muted, .word-hint.pending { color: var(--muted); font-weight: 400; }
 
 .numpad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }

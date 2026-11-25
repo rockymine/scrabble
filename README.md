@@ -33,6 +33,11 @@ Daten bleiben auf dem Gerät (IndexedDB).
   (Grundform, Form, Bedeutung, Hinweis auf seltene/veraltete/regionale Wörter). „Nicht
   gefunden“ heißt nicht „ungültig“ – z. B. fehlen Genitive substantivierter
   Infinitive wie „ANPOCHENS“. Gewertet werden darf immer.
+- **Hausregeln** (Filter auf die Wortprüfung): Abkürzungen und Eigennamen (Orte,
+  Länder, Flüsse, Personen) sind nie in der Liste; Kurzwörter (KITA, AZUBI)
+  erlauben oder nicht; seltene/veraltete/regionale Wörter erlauben, mit Hinweis
+  oder verbieten; eigene Ausnahmen („bei uns erlaubt“ / „nicht erlaubt“), direkt
+  aus „Wort prüfen“ setzbar und Teil der Sicherung
 - **Sicherung**: Export aller Daten als JSON-Datei (oder „Teilen“ per Mail/Cloud),
   Import ersetzt den Datenbestand nach Rückfrage. Die Startseite erinnert, wenn
   länger nicht gesichert wurde.

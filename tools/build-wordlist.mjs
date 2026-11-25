@@ -142,6 +142,12 @@ for await (const line of rl) {
       gloss: gloss.length > 90 ? gloss.slice(0, 88).replace(/\s+\S*$/, '') + ' …' : gloss,
       marks: senseMarks(senses),
       tr: (e.translations || []).length,
+      // Kurzwort (Kita, Kripo, Radar …): für die Hausregel „Kurzwörter erlauben“
+      // erkannt an der Herkunft („Kurzwort zu Akkumulator“, „Kurzform von Universität“)
+      // oder an der ersten Bedeutung („Kurzwort für Kindertagesstätte“)
+      kurz: (senses.length > 0 && senses.every((s) => /^Kurz(wort|form)\b/.test((s.glosses || [''])[0]))) ||
+        cats.includes('Kurzwort (Deutsch)') ||
+        /Kurzwort|Kurzform|Akronym|Initialwort|gekürzt aus/i.test((e.etymology_texts || []).join(' ').slice(0, 160)),
     });
   }
   const w = add(e.word, lemma, 'Grundform');
@@ -184,7 +190,7 @@ for (const w of words) {
 }
 console.log(`${dropped} Formen ohne gültige Grundform bzw. Abkürzungen verworfen`);
 
-/** Herkunftszeile: Grundform␟Wortart␟Formen␟Markierungen␟Bedeutung␟Übersetzungen (max. 3 Grundformen) */
+/** Herkunftszeile: Grundform␟Wortart␟Formen␟Markierungen␟Bedeutung␟Übersetzungen␟Merkmale (K = Kurzwort; max. 3 Grundformen) */
 function originLine(w) {
   const m = origin.get(w);
   if (!m) return '';
@@ -192,7 +198,7 @@ function originLine(w) {
   for (const [lemma, descs] of m) {
     const li = lemmaInfo.get(lemma);
     if (!li) continue;
-    parts.push([lemma, li.pos, [...descs].join(', '), li.marks.join(', '), li.gloss, li.tr].join('\u001f'));
+    parts.push([lemma, li.pos, [...descs].join(', '), li.marks.join(', '), li.gloss, li.tr, li.kurz ? 'K' : ''].join('\u001f'));
     if (parts.length >= 3) break;
   }
   return parts.join('\u001e');
