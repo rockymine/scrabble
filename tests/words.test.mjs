@@ -67,10 +67,19 @@ test('Hausregeln: Kurzwörter, seltene Wörter, eigene Ausnahmen', () => {
   assert.equal(applyRules('KITA', 'found', kita, { shortForms: false }).verdict, 'deny');
   // UNI hat auch eine normale Bedeutung („einheitliche Färbung“) → bleibt erlaubt
   assert.equal(applyRules('UNI', 'found', info('UNI'), { shortForms: false }).verdict, 'ok');
+  // GLASTS ist süddeutsch UND poetisch → zählt als regional
   const glasts = info('GLASTS');
-  assert.equal(applyRules('GLASTS', 'found', glasts, DEFAULT_RULES).verdict, 'warn');
-  assert.equal(applyRules('GLASTS', 'found', glasts, { rare: 'deny' }).verdict, 'deny');
-  assert.equal(applyRules('GLASTS', 'found', glasts, { rare: 'allow' }).verdict, 'ok');
+  assert.equal(applyRules('GLASTS', 'found', glasts, DEFAULT_RULES).verdict, 'deny');
+  assert.equal(applyRules('GLASTS', 'found', glasts, { regional: 'warn' }).verdict, 'warn');
+  assert.equal(applyRules('GLASTS', 'found', glasts, { regional: 'allow' }).verdict, 'ok');
+  // veraltete Schreibweisen (SEYN, THEIL) standardmäßig verboten, Hochdeutsch erlaubt
+  assert.equal(applyRules('SEYN', 'found', info('SEYN'), DEFAULT_RULES).verdict, 'deny');
+  assert.equal(applyRules('THEIL', 'found', info('THEIL'), DEFAULT_RULES).verdict, 'deny');
+  assert.equal(applyRules('DÄZ', 'found', info('DÄZ'), DEFAULT_RULES).verdict, 'deny');
+  assert.equal(applyRules('STRASSE', 'found', info('STRASSE'), DEFAULT_RULES).verdict, 'ok');
+  // QI: unmarkiert → erlaubt; HAUS hat zusätzlich eine veraltete Nebenbedeutung → trotzdem erlaubt
+  assert.equal(applyRules('QI', 'found', info('QI'), DEFAULT_RULES).verdict, 'ok');
+  assert.equal(applyRules('HAUS', 'found', info('HAUS'), DEFAULT_RULES).verdict, 'ok');
   // eigene Ausnahmen schlagen alles
   assert.equal(applyRules('ANPOCHENS', 'missing', [], { allow: ['anpochens'] }).verdict, 'ok');
   assert.equal(applyRules('HAUS', 'found', info('HAUS'), { deny: ['Haus'] }).verdict, 'deny');

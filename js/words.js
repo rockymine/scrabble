@@ -119,7 +119,14 @@ export async function offlineStatus() {
 // ---------- Herkunft (Grundform, Form, Bedeutung, Markierungen) ----------
 
 const infoShards = new Map();
-const RARE = /veraltet|poetisch|selten|regional|mundartlich|süddeutsch|norddeutsch|schweizerisch|österreichisch|bairisch/;
+// Einteilung nach Markierungen (für die Hausregeln)
+const OLD = /\bveraltet\b/;
+const REGIONAL = /regional|mundartlich|süddeutsch|norddeutsch|mitteldeutsch|westdeutsch|ostdeutsch|schweizerisch|österreichisch|bairisch/;
+const RARE = /poetisch|selten|veraltend/;
+export function classify(marks) {
+  const m = marks.join(', ');
+  return OLD.test(m) ? 'old' : REGIONAL.test(m) ? 'regional' : RARE.test(m) ? 'rare' : 'ok';
+}
 
 /** Zeile „WORT\t…“ per Binärsuche in einem sortierten Herkunfts-Text finden. */
 export function findInfoLine(text, word) {
@@ -147,7 +154,8 @@ export function parseInfoLine(line) {
   return rest.split('\u001e').map((src) => {
     const [lemma, pos, forms, marks, gloss, tr, flags = ''] = src.split('\u001f');
     const markList = marks ? marks.split(', ') : [];
-    return { lemma, pos, forms, marks: markList, gloss, translations: Number(tr) || 0, rare: markList.some((m) => RARE.test(m)), short: flags === 'K' };
+    const klass = classify(markList);
+    return { lemma, pos, forms, marks: markList, gloss, translations: Number(tr) || 0, klass, rare: klass !== 'ok', short: flags === 'K' };
   });
 }
 
@@ -186,16 +194,20 @@ export async function wordInfo(raw) {
  * Hausregeln für die Wortprüfung (Filter auf die Wortliste).
  * Abkürzungen und Eigennamen (Orte, Länder, Flüsse, Personen) stehen ohnehin nie in der Liste.
  *   shortForms: Kurzwörter wie KITA, KRIPO, AZUBI erlaubt?
- *   rare:       seltene/veraltete/regionale Wörter: 'allow' | 'warn' | 'deny'
+ *   old:        veraltete Wörter und Schreibweisen (SEYN, THEIL)  'allow' | 'warn' | 'deny'
+ *   regional:   regional/mundartlich (DÄZ) – „nur Hochdeutsch“      'allow' | 'warn' | 'deny'
+ *   rare:       selten/poetisch (GLASTS)                           'allow' | 'warn' | 'deny'
  *   allow/deny: eigene Ausnahmen (normalisierte Wörter)
  */
-export const DEFAULT_RULES = Object.freeze({ shortForms: true, rare: 'warn', allow: [], deny: [] });
+export const DEFAULT_RULES = Object.freeze({ shortForms: true, old: 'deny', regional: 'deny', rare: 'warn', allow: [], deny: [] });
+const LEVELS = ['allow', 'warn', 'deny'];
+const KLASS_TEXT = { old: 'Veraltet', regional: 'Regional bzw. Mundart', rare: 'Selten oder poetisch' };
 
 export function normalizeRules(r) {
   const x = { ...DEFAULT_RULES, ...(r || {}) };
   x.allow = [...new Set((x.allow || []).map(normalizeWord).filter(Boolean))].sort();
   x.deny = [...new Set((x.deny || []).map(normalizeWord).filter(Boolean))].sort();
-  if (!['allow', 'warn', 'deny'].includes(x.rare)) x.rare = 'warn';
+  for (const k of ['old', 'regional', 'rare']) if (!LEVELS.includes(x[k])) x[k] = DEFAULT_RULES[k];
   x.shortForms = x.shortForms !== false;
   return x;
 }
@@ -211,10 +223,20 @@ export function applyRules(word, status, info, rules) {
     return { verdict: 'deny', reason: 'Kurzwort – laut Hausregel nicht erlaubt' };
   }
   if (!r.shortForms) sources = sources.filter((x) => !x.short);
-  const rareOnly = sources.length > 0 && sources.every((x) => x.rare);
-  if (rareOnly && r.rare === 'deny') return { verdict: 'deny', reason: 'Selten, veraltet oder regional – laut Hausregel nicht erlaubt' };
-  if (rareOnly && r.rare === 'warn') return { verdict: 'warn', reason: 'Selten, veraltet oder regional – am Tisch absprechen' };
-  return { verdict: 'ok', reason: '' };
+  if (!sources.length) return { verdict: 'ok', reason: '' };
+  // Jede Grundform für sich bewerten; es zählt die günstigste (ein Wort mit einer
+  // normalen Bedeutung ist erlaubt, auch wenn es zusätzlich eine veraltete hat)
+  let best = null;
+  for (const x of sources) {
+    const klass = x.klass || 'ok';
+    const level = klass === 'ok' ? 'allow' : r[klass];
+    if (!best || LEVELS.indexOf(level) < LEVELS.indexOf(best.level)) best = { level, klass };
+  }
+  if (best.level === 'allow') return { verdict: 'ok', reason: '' };
+  const what = KLASS_TEXT[best.klass];
+  return best.level === 'deny'
+    ? { verdict: 'deny', reason: `${what} – laut Hausregel nicht erlaubt`, klass: best.klass }
+    : { verdict: 'warn', reason: `${what} – am Tisch absprechen`, klass: best.klass };
 }
 
 /** Wort prüfen inkl. Herkunft und Hausregeln. */

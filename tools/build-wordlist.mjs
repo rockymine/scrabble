@@ -62,7 +62,7 @@ const TAG_DE = {
 };
 // Markierungen, die auf seltene/eingeschränkte Wörter hinweisen
 const MARK_DE = {
-  archaic: 'veraltet', obsolete: 'veraltet', outdated: 'veraltet', poetic: 'poetisch', rare: 'selten',
+  archaic: 'veraltet', obsolete: 'veraltet', outdated: 'veraltet', dated: 'veraltend', poetic: 'poetisch', rare: 'selten',
   regional: 'regional', dialectal: 'mundartlich', 'South-German': 'süddeutsch', 'North-German': 'norddeutsch',
   Switzerland: 'schweizerisch', 'Austrian German': 'österreichisch', Austria: 'österreichisch',
   colloquial: 'umgangssprachlich', slang: 'salopp', vulgar: 'vulgär', derogatory: 'abwertend',
@@ -77,29 +77,44 @@ const norm = (raw) => {
 // Komplett in Großbuchstaben geschrieben = Abkürzung (BH, LKW, SMS …)
 const allCaps = (raw) => typeof raw === 'string' && raw.length >= 2 && raw === raw.toUpperCase() && raw !== raw.toLowerCase();
 
-function note(w, lemma, desc) {
+// Markierungen einzelner Formen in Beugungstabellen (alte Schreibweisen wie „seyn“, „Theil“)
+const FORM_MARK = {
+  obsolete: 'veraltet', archaic: 'veraltet', outdated: 'veraltet', regional: 'regional', dialectal: 'mundartlich',
+  'South-German': 'süddeutsch', 'North-German': 'norddeutsch', Switzerland: 'schweizerisch',
+  Liechtenstein: 'schweizerisch', 'Austrian German': 'österreichisch', Bavarian: 'bairisch',
+};
+
+/** Herkunft merken. fmarks = Markierungen dieser Form; „plain“ = es gibt eine unmarkierte Form. */
+function note(w, lemma, desc, fmarks = []) {
   let m = origin.get(w);
   if (!m) origin.set(w, (m = new Map()));
-  let s = m.get(lemma);
-  if (!s) m.set(lemma, (s = new Set()));
-  if (desc && s.size < 3) s.add(desc);
+  let o = m.get(lemma);
+  if (!o) m.set(lemma, (o = { descs: new Set(), plain: false, fmarks: new Set() }));
+  if (desc && o.descs.size < 3) o.descs.add(desc);
+  if (fmarks.length) fmarks.forEach((x) => o.fmarks.add(x));
+  else o.plain = true;
 }
 
-function add(raw, lemma, desc) {
+function add(raw, lemma, desc, fmarks) {
   const w = allCaps(raw) ? '' : norm(raw);
   if (!w) return '';
   words.add(w);
-  if (lemma) note(w, lemma, desc);
+  if (lemma) note(w, lemma, desc, fmarks);
   return w;
 }
 
 const formDesc = (tags = []) => tags.map((t) => TAG_DE[t]).filter(Boolean).join(' ') || 'Nebenform';
+const formMarks = (tags = []) => [...new Set(tags.map((t) => FORM_MARK[t]).filter(Boolean))];
+// Kennzeichnung am Anfang der Bedeutung, z. B. „regional, mitteldeutsch: … Kopf“
+const GLOSS_LABEL = /^((?:(?:regional|landschaftlich|mundartlich|veraltet|süddeutsch|norddeutsch|mitteldeutsch|westdeutsch|ostdeutsch|österreichisch|schweizerisch|bairisch|umgangssprachlich|salopp|selten|poetisch|dichterisch)[ ,]*(?:und |oder )?)+):/;
 
 function senseMarks(senses = []) {
   const marks = new Set();
   const first = senses[0] || {};
   for (const t of first.tags || []) if (MARK_DE[t]) marks.add(MARK_DE[t]);
   for (const t of first.raw_tags || []) if (t.length <= 24 && !/^(sonst|speziell|besonders|meist|oft|auch)\b/.test(t)) marks.add(t);
+  const g = ((first.glosses || [''])[0] || '').match(GLOSS_LABEL);
+  if (g) for (const x of g[1].split(/[ ,]+/)) if (x && x !== 'und' && x !== 'oder') marks.add(x === 'landschaftlich' ? 'regional' : x === 'dichterisch' ? 'poetisch' : x);
   return [...marks].slice(0, 3);
 }
 
@@ -154,7 +169,7 @@ for await (const line of rl) {
   if (w && cats.includes('Grundformeintrag (Deutsch)')) lemmas.add(w);
   for (const f of e.forms || []) {
     if ((f.tags || []).some((t) => SKIP_FORM_TAGS.has(t))) continue;
-    add(f.form, lemma, formDesc(f.tags));
+    add(f.form, lemma, formDesc(f.tags), formMarks(f.tags));
   }
 }
 
@@ -195,10 +210,12 @@ function originLine(w) {
   const m = origin.get(w);
   if (!m) return '';
   const parts = [];
-  for (const [lemma, descs] of m) {
+  for (const [lemma, o] of m) {
     const li = lemmaInfo.get(lemma);
     if (!li) continue;
-    parts.push([lemma, li.pos, [...descs].join(', '), li.marks.join(', '), li.gloss, li.tr, li.kurz ? 'K' : ''].join('\u001f'));
+    // Formmarkierung nur, wenn es diese Schreibung nicht auch als normale Form gibt
+    const marks = [...new Set([...(o.plain ? [] : o.fmarks), ...li.marks])];
+    parts.push([lemma, li.pos, [...o.descs].join(', '), marks.join(', '), li.gloss, li.tr, li.kurz ? 'K' : ''].join('\u001f'));
     if (parts.length >= 3) break;
   }
   return parts.join('\u001e');
