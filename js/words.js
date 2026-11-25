@@ -115,3 +115,67 @@ export async function offlineStatus() {
   }
   return { index, cached, total: keys.length };
 }
+
+// ---------- Herkunft (Grundform, Form, Bedeutung, Markierungen) ----------
+
+const infoShards = new Map();
+const RARE = /veraltet|poetisch|selten|regional|mundartlich|süddeutsch|norddeutsch|schweizerisch|österreichisch|bairisch/;
+
+/** Zeile „WORT\t…“ per Binärsuche in einem sortierten Herkunfts-Text finden. */
+export function findInfoLine(text, word) {
+  let lo = 0;
+  let hi = text.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >>> 1;
+    const start = text.lastIndexOf('\n', mid - 1) + 1;
+    let end = text.indexOf('\n', start);
+    if (end === -1) end = text.length;
+    const tab = text.indexOf('\t', start);
+    const key = text.slice(start, tab > -1 && tab < end ? tab : end);
+    if (key === word) return text.slice(start, end);
+    if (key < word) lo = end + 1;
+    else hi = start;
+  }
+  return null;
+}
+
+/** Herkunftszeile in Objekte zerlegen. */
+export function parseInfoLine(line) {
+  if (!line) return [];
+  const rest = line.slice(line.indexOf('\t') + 1);
+  if (!rest) return [];
+  return rest.split('\u001e').map((src) => {
+    const [lemma, pos, forms, marks, gloss, tr] = src.split('\u001f');
+    const markList = marks ? marks.split(', ') : [];
+    return { lemma, pos, forms, marks: markList, gloss, translations: Number(tr) || 0, rare: markList.some((m) => RARE.test(m)) };
+  });
+}
+
+/** Kurzbeschreibung, z. B. „Genitiv Singular von Glast (süddeutsch, poetisch)“. */
+export function describeInfo(src) {
+  const form = !src.forms || src.forms.startsWith('Grundform') ? `${src.pos || 'Grundform'}` : `${src.forms.split(', ')[0]} von ${src.lemma}`;
+  return form + (src.marks.length ? ` (${src.marks.join(', ')})` : '');
+}
+
+/** Herkunft eines Wortes laden (lädt bei Bedarf eine Datei je Anfangsbuchstabe). */
+export async function wordInfo(raw) {
+  const word = normalizeWord(raw);
+  if (!word || !isPlayableWord(word) || !wordCheckSupported) return [];
+  try {
+    const index = await loadIndex();
+    const key = shardKey(word);
+    const meta = index.info?.[key];
+    if (!meta) return [];
+    if (!infoShards.has(key)) {
+      const p = fetch(new URL(`${meta.file}?v=${index.version}`, BASE)).then((r) => {
+        if (!r.ok) throw new Error('Herkunft nicht verfügbar');
+        return gunzipText(r);
+      });
+      p.catch(() => infoShards.delete(key));
+      infoShards.set(key, p);
+    }
+    return parseInfoLine(findInfoLine(await infoShards.get(key), word));
+  } catch {
+    return [];
+  }
+}

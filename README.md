@@ -29,7 +29,8 @@ Daten bleiben auf dem Gerät (IndexedDB).
   Zahl: `24 HAUS`)
 - **Statistik**: Siege (auch geteilte), Siegquote, Ø Endstand, Ø pro Zug,
   höchste Partie, höchster Einzelzug, Duell-Bilanz je Spielerpaar
-- **Wortprüfung** (nur Hinweis): ca. 700.000 Wortformen offline. „Nicht
+- **Wortprüfung** (nur Hinweis): ca. 685.000 Wortformen offline, mit Herkunft
+  (Grundform, Form, Bedeutung, Hinweis auf seltene/veraltete/regionale Wörter). „Nicht
   gefunden“ heißt nicht „ungültig“ – z. B. fehlen Genitive substantivierter
   Infinitive wie „ANPOCHENS“. Gewertet werden darf immer.
 - **Sicherung**: Export aller Daten als JSON-Datei (oder „Teilen“ per Mail/Cloud),

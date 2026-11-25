@@ -24,4 +24,10 @@ Erzeugt mit `tools/build-wordlist.mjs`:
 - in Großbuchstaben, ß als SS
 - nach Anfangsbuchstaben aufgeteilt, sortiert, gzip-komprimiert
 
+- Beugungsformen nur, wenn ihre Grundform selbst aufgenommen ist (keine Formen
+  von Orts- und Personennamen)
+- `info/*.txt.gz`: Herkunft je Wort – Grundform, Wortart, Form (z. B. „Genitiv
+  Singular“), Markierungen (veraltet, regional, Fachgebiet …), gekürzte erste
+  Bedeutung und Zahl der Übersetzungen im Wiktionary
+
 Diese abgeleitete Wortliste steht ebenfalls unter CC BY-SA 4.0.
