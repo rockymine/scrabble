@@ -126,7 +126,7 @@ function wordHint(input) {
       el.textContent = r.custom ? '✓ Bei euch erlaubt' : `✓ ${desc}`;
     } else if (r.verdict === 'warn') {
       el.className = 'word-hint rare';
-      el.textContent = `⚠ ${desc} – selten, am Tisch absprechen`;
+      el.textContent = `⚠ ${desc} – ${r.reason}`;
     } else if (r.verdict === 'deny') {
       el.className = 'word-hint deny';
       el.textContent = `✗ ${r.reason}`;
@@ -1165,7 +1165,7 @@ async function wordView() {
     const r = await judgeWord(input.value, state.rules);
     const head = {
       ok: r.custom ? '✓ bei euch erlaubt (eigene Ausnahme)' : '✓ steht in der Wortliste',
-      warn: '⚠ steht in der Liste, ist aber selten, veraltet oder regional',
+      warn: `⚠ steht in der Liste: ${r.reason}`,
       deny: `✗ ${r.reason}`,
       missing: 'nicht in der Wortliste gefunden',
     }[r.verdict] || r.reason || '';
@@ -1221,6 +1221,13 @@ async function rulesView() {
     h('button', { type: 'button', class: 'choice' + (active ? ' selected' : ''), 'aria-pressed': String(active), onclick },
       label, sub ? h('small', { class: 'choice-sub' }, sub) : null);
   const update = async (patch) => { await saveRules({ ...state.rules, ...patch }); toast('Hausregel gespeichert'); refresh(); };
+  const levelCard = (key, title, example) => card(
+    h('h2', null, title),
+    h('p', { class: 'muted' }, example),
+    h('div', { class: 'choice-list' },
+      choice('Erlaubt', null, r[key] === 'allow', () => update({ [key]: 'allow' })),
+      choice('Erlaubt, aber mit Hinweis', null, r[key] === 'warn', () => update({ [key]: 'warn' })),
+      choice('Nicht erlaubt', null, r[key] === 'deny', () => update({ [key]: 'deny' }))));
 
   const addInput = wordInput({ placeholder: 'Wort', 'aria-label': 'Wort für eigene Ausnahme' });
   const addTo = async (key) => {
@@ -1244,19 +1251,15 @@ async function rulesView() {
         h('h2', null, 'Immer ausgeschlossen'),
         h('p', null, 'In der Wortliste stehen nie: ', h('b', null, 'Abkürzungen'), ' (LKW, BH, PKW …) und ',
           h('b', null, 'Eigennamen'), ' – Orte, Länder, Flüsse, Personen (BERLIN, IRLAND, RHEIN …).'),
-        h('p', { class: 'muted' }, 'Erlaubt sind dagegen z. B. Einwohner wie IRE oder ENGLÄNDER.')),
+        h('p', { class: 'muted' }, 'Erlaubt sind dagegen z. B. Einwohner wie IRE oder ENGLÄNDER. QI ist ein gewöhnliches Wort der Liste und bleibt erlaubt.')),
       card(
         h('h2', null, 'Kurzwörter (KITA, KRIPO, AZUBI)'),
         h('div', { class: 'choice-list' },
           choice('Erlaubt', 'z. B. KITA, AZUBI, UNI, KRIPO', r.shortForms, () => update({ shortForms: true })),
           choice('Nicht erlaubt', 'Achtung: auch AUTO, KINO, FOTO, ZOO sind Kurzwörter', !r.shortForms, () => update({ shortForms: false })))),
-      card(
-        h('h2', null, 'Seltene, veraltete und regionale Wörter'),
-        h('p', { class: 'muted' }, 'z. B. GLASTS (poetisch, süddeutsch), DÄZ (mitteldeutsch für Kopf)'),
-        h('div', { class: 'choice-list' },
-          choice('Erlaubt', null, r.rare === 'allow', () => update({ rare: 'allow' })),
-          choice('Erlaubt, aber mit Hinweis', null, r.rare === 'warn', () => update({ rare: 'warn' })),
-          choice('Nicht erlaubt', null, r.rare === 'deny', () => update({ rare: 'deny' })))),
+      levelCard('old', 'Veraltete Wörter und Schreibweisen', 'z. B. SEYN, THEIL, BEY – die alte Rechtschreibung kennt niemand mehr'),
+      levelCard('regional', 'Regionale Wörter und Mundart', 'z. B. DÄZ (mitteldeutsch für Kopf), GLASTS (süddeutsch) – „nur Hochdeutsch“'),
+      levelCard('rare', 'Seltene und poetische Wörter', 'z. B. Wörter, die das Wiktionary als selten oder dichterisch markiert'),
       card(
         h('h2', null, 'Eigene Ausnahmen'),
         h('p', { class: 'muted' }, 'Wörter, über die ihr am Tisch entschieden habt – gelten vor allen anderen Regeln. Auch direkt bei „Wort prüfen“ setzbar.'),

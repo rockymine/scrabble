@@ -1,7 +1,7 @@
 // Service Worker: App-Dateien vorab speichern, Wortliste beim ersten Abruf.
 // VERSION wird beim Veröffentlichen automatisch aus dem Inhalt aller App-Dateien
 // berechnet (tools/stamp-sw.mjs), damit Geräte Updates zuverlässig bekommen.
-const VERSION = '1.0.0-e44812fc75';
+const VERSION = '1.0.0-20c84a32e0';
 const SHELL_CACHE = `shell-${VERSION}`;
 const WORDS_CACHE = 'words';
 
