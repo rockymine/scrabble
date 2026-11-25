@@ -1,0 +1,27 @@
+{
+  "note": "Echte Partie (Endbrett + Punktezettel). Zug R6 von C ist 37 (auf dem Zettel 35 notiert; nur mit 37 ist die Partie konsistent: QI 33 + IM 4).",
+  "board": [
+    "EGELS.ANPOCHENS",
+    "HEX..C.....U.A.",
+    ".I.GÖREN.YENS..",
+    ".S...U..Z..D...",
+    ".TRIMM.BANNS...",
+    ".E...b..RAU....",
+    ".....L..T......",
+    "QI..WEILERN....",
+    ".MUHE....e.....",
+    "....D.KEIMTEN..",
+    "...HE....I....D",
+    "JÄGERN...SUFF.A",
+    "U.OB........E.V",
+    "S...........T.O",
+    "T...........TÜR"
+  ],
+  "players": ["A", "B", "C"],
+  "scores": {
+    "A": [14, 23, 45, 20, 8, 44, 11, 24, 18, 13, 12, null, null, null],
+    "B": [16, 14, 26, 18, 21, 20, 27, 10, 17, 10, 14, 9, 12, null],
+    "C": [12, 13, 51, 12, 9, 37, 14, 27, 13, 11, 9, 18, 11, 4]
+  },
+  "leftovers": { "A": "K", "B": "D" }
+}

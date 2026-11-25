@@ -1,0 +1,13 @@
+{
+  "name": "familien-scrabble",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Spielstand-App für Scrabble am Familientisch (PWA, offline, ohne Server)",
+  "scripts": {
+    "start": "python3 -m http.server 8080",
+    "test": "node --test tests/*.test.mjs",
+    "wordlist": "node tools/build-wordlist.mjs",
+    "stamp": "node tools/stamp-sw.mjs"
+  }
+}
