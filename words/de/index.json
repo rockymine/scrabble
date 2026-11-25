@@ -1,0 +1,278 @@
+{
+  "version": "20261125-1ec2e1fc",
+  "generated": "2026-11-25T20:49:31.752Z",
+  "dumpDate": "2026-11-01",
+  "source": "Deutschsprachiges Wiktionary über kaikki.org (Wiktextract)",
+  "sourceUrl": "https://kaikki.org/dewiktionary/",
+  "license": "CC BY-SA 4.0",
+  "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+  "entries": 980263,
+  "count": 684752,
+  "shards": {
+    "A": {
+      "file": "A.txt.gz",
+      "count": 76931,
+      "bytes": 186519
+    },
+    "AE": {
+      "file": "AE.txt.gz",
+      "count": 1153,
+      "bytes": 2642
+    },
+    "B": {
+      "file": "B.txt.gz",
+      "count": 47561,
+      "bytes": 114568
+    },
+    "C": {
+      "file": "C.txt.gz",
+      "count": 5123,
+      "bytes": 14143
+    },
+    "D": {
+      "file": "D.txt.gz",
+      "count": 26503,
+      "bytes": 65135
+    },
+    "E": {
+      "file": "E.txt.gz",
+      "count": 42314,
+      "bytes": 99923
+    },
+    "F": {
+      "file": "F.txt.gz",
+      "count": 29008,
+      "bytes": 72285
+    },
+    "G": {
+      "file": "G.txt.gz",
+      "count": 39223,
+      "bytes": 96540
+    },
+    "H": {
+      "file": "H.txt.gz",
+      "count": 41070,
+      "bytes": 101345
+    },
+    "I": {
+      "file": "I.txt.gz",
+      "count": 9151,
+      "bytes": 22509
+    },
+    "J": {
+      "file": "J.txt.gz",
+      "count": 4015,
+      "bytes": 10330
+    },
+    "K": {
+      "file": "K.txt.gz",
+      "count": 36744,
+      "bytes": 92600
+    },
+    "L": {
+      "file": "L.txt.gz",
+      "count": 18443,
+      "bytes": 47181
+    },
+    "M": {
+      "file": "M.txt.gz",
+      "count": 27171,
+      "bytes": 69001
+    },
+    "N": {
+      "file": "N.txt.gz",
+      "count": 17042,
+      "bytes": 42717
+    },
+    "O": {
+      "file": "O.txt.gz",
+      "count": 7127,
+      "bytes": 18416
+    },
+    "OE": {
+      "file": "OE.txt.gz",
+      "count": 912,
+      "bytes": 2370
+    },
+    "P": {
+      "file": "P.txt.gz",
+      "count": 27148,
+      "bytes": 68454
+    },
+    "Q": {
+      "file": "Q.txt.gz",
+      "count": 1952,
+      "bytes": 4825
+    },
+    "R": {
+      "file": "R.txt.gz",
+      "count": 24054,
+      "bytes": 60248
+    },
+    "S": {
+      "file": "S.txt.gz",
+      "count": 61866,
+      "bytes": 156144
+    },
+    "T": {
+      "file": "T.txt.gz",
+      "count": 21487,
+      "bytes": 54352
+    },
+    "U": {
+      "file": "U.txt.gz",
+      "count": 22490,
+      "bytes": 51532
+    },
+    "UE": {
+      "file": "UE.txt.gz",
+      "count": 5692,
+      "bytes": 12731
+    },
+    "V": {
+      "file": "V.txt.gz",
+      "count": 37407,
+      "bytes": 85498
+    },
+    "W": {
+      "file": "W.txt.gz",
+      "count": 26485,
+      "bytes": 65892
+    },
+    "X": {
+      "file": "X.txt.gz",
+      "count": 417,
+      "bytes": 1047
+    },
+    "Y": {
+      "file": "Y.txt.gz",
+      "count": 267,
+      "bytes": 767
+    },
+    "Z": {
+      "file": "Z.txt.gz",
+      "count": 25996,
+      "bytes": 63204
+    }
+  },
+  "info": {
+    "A": {
+      "file": "info/A.txt.gz",
+      "bytes": 1136703
+    },
+    "AE": {
+      "file": "info/AE.txt.gz",
+      "bytes": 18494
+    },
+    "B": {
+      "file": "info/B.txt.gz",
+      "bytes": 726440
+    },
+    "C": {
+      "file": "info/C.txt.gz",
+      "bytes": 114397
+    },
+    "D": {
+      "file": "info/D.txt.gz",
+      "bytes": 411985
+    },
+    "E": {
+      "file": "info/E.txt.gz",
+      "bytes": 583575
+    },
+    "F": {
+      "file": "info/F.txt.gz",
+      "bytes": 474880
+    },
+    "G": {
+      "file": "info/G.txt.gz",
+      "bytes": 661427
+    },
+    "H": {
+      "file": "info/H.txt.gz",
+      "bytes": 608533
+    },
+    "I": {
+      "file": "info/I.txt.gz",
+      "bytes": 155276
+    },
+    "J": {
+      "file": "info/J.txt.gz",
+      "bytes": 73117
+    },
+    "K": {
+      "file": "info/K.txt.gz",
+      "bytes": 621132
+    },
+    "L": {
+      "file": "info/L.txt.gz",
+      "bytes": 314599
+    },
+    "M": {
+      "file": "info/M.txt.gz",
+      "bytes": 463685
+    },
+    "N": {
+      "file": "info/N.txt.gz",
+      "bytes": 278024
+    },
+    "O": {
+      "file": "info/O.txt.gz",
+      "bytes": 127968
+    },
+    "OE": {
+      "file": "info/OE.txt.gz",
+      "bytes": 16310
+    },
+    "P": {
+      "file": "info/P.txt.gz",
+      "bytes": 470793
+    },
+    "Q": {
+      "file": "info/Q.txt.gz",
+      "bytes": 34164
+    },
+    "R": {
+      "file": "info/R.txt.gz",
+      "bytes": 392016
+    },
+    "S": {
+      "file": "info/S.txt.gz",
+      "bytes": 1056326
+    },
+    "T": {
+      "file": "info/T.txt.gz",
+      "bytes": 371919
+    },
+    "U": {
+      "file": "info/U.txt.gz",
+      "bytes": 300184
+    },
+    "UE": {
+      "file": "info/UE.txt.gz",
+      "bytes": 74458
+    },
+    "V": {
+      "file": "info/V.txt.gz",
+      "bytes": 489254
+    },
+    "W": {
+      "file": "info/W.txt.gz",
+      "bytes": 411403
+    },
+    "X": {
+      "file": "info/X.txt.gz",
+      "bytes": 8274
+    },
+    "Y": {
+      "file": "info/Y.txt.gz",
+      "bytes": 6400
+    },
+    "Z": {
+      "file": "info/Z.txt.gz",
+      "bytes": 369621
+    }
+  },
+  "bytes": 1682918,
+  "infoBytes": 10771357
+}
