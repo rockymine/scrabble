@@ -87,3 +87,11 @@ test('Bänke je Zug: sicher / möglich, ab leerem Beutel komplett', () => {
   const last = b.map((x, i) => [x, sol[i]]).filter(([, m]) => m.player === 'A').at(-1)[0];
   assert.deepEqual(last.sure, ['K']);
 });
+
+test('Rekonstruktion: eingetragenes Wort als Bedingung', () => {
+  const turns = turnsOf(game);
+  turns[0].word = 'Weil';
+  assert.ok(reconstruct({ cells, turns, isWord, maxUnknown: 4, maxSolutions: 5 }).solutions.length > 0);
+  turns[0].word = 'NULLT'; // falsches Wort für den ersten Zug → keine Lösung
+  assert.equal(reconstruct({ cells, turns, isWord, maxUnknown: 4, maxSolutions: 5 }).solutions.length, 0);
+});
