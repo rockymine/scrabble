@@ -121,7 +121,7 @@ export async function offlineStatus() {
 const infoShards = new Map();
 // Einteilung nach Markierungen (für die Hausregeln)
 const OLD = /\bveraltet\b/;
-const REGIONAL = /regional|mundartlich|süddeutsch|norddeutsch|mitteldeutsch|westdeutsch|ostdeutsch|schweizerisch|österreichisch|bairisch/;
+const REGIONAL = /regional|mundartlich|landschaftlich|dialektal|süddeutsch|norddeutsch|mitteldeutsch|westdeutsch|ostdeutsch|schweizerisch|österreichisch|bairisch|bayrisch|schwäbisch|sächsisch|berlinisch|rheinisch|fränkisch|alemannisch|hessisch|westfälisch|pfälzisch|badisch|thüringisch|kölsch|wienerisch|tirolerisch|plattdeutsch|niederdeutsch|obersächsisch|ostpreußisch|schlesisch|lothringisch|elsässisch|luxemburgisch|südtirolerisch/i;
 const RARE = /poetisch|selten|veraltend/;
 export function classify(marks) {
   const m = marks.join(', ');

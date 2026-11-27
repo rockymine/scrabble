@@ -92,7 +92,7 @@ tr.on td{background:color-mix(in srgb,var(--new) 16%,transparent)}
 
 <div class="wrap">
   <h1>Scrabble-Partien</h1>
-  <p class="lead" id="lead">Eure echte Partie und simulierte Spiele, Zug für Zug auf dem Brett.</p>
+  <p class="lead" id="lead">Eure echten Partien und simulierte Spiele, Zug für Zug auf dem Brett.</p>
   <div class="figs" id="figs"></div>
   <div class="main">
     <div class="board"><div class="grid" id="grid" aria-label="Spielbrett"></div></div>
@@ -143,13 +143,13 @@ const mean=a=>a.reduce((s,x)=>s+x,0)/(a.length||1);
 function summary(){
   const by=k=>games.filter(x=>x.kind===k);
   const f=[];
-  const echt=by('echt')[0];
-  if(echt)f.push([Math.round(mean(echt.final)),'Ø Endstand eure Partie']);
+  const echt=by('echt');
+  if(echt.length)f.push([Math.round(mean(echt.flatMap(x=>x.final))),echt.length>1?`Ø Endstand eure ${echt.length} Partien`:'Ø Endstand eure Partie']);
   const avg=(k,label)=>{const x=by(k);if(x.length)f.push([Math.round(mean(x.flatMap(y=>y.final))),label])};
   avg('profi-g','Ø Profi-Bots, Alltagswörter');avg('gelegenheit-g','Ø Gelegenheit, Alltagswörter');
   avg('profi','Ø Profi-Bots, ganzes Wiktionary');avg('gelegenheit','Ø Gelegenheit, ganzes Wiktionary');
   const per=k=>{const m=by(k).flatMap(x=>x.moves).filter(m=>m.score!=null);return mean(m.map(m=>m.score)).toFixed(1).replace('.',',')};
-  if(echt)f.push([per('echt'),'Punkte pro Zug bei euch']);
+  if(echt.length)f.push([per('echt'),'Punkte pro Zug bei euch']);
   $('figs').innerHTML=f.map(([b,s])=>`<div class="fg"><b>${esc(b)}</b><span>${esc(s)}</span></div>`).join('');
 }
 

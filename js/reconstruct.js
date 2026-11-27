@@ -10,6 +10,7 @@
 // Reine Logik, läuft im Browser und in Node.
 
 import { LETTER_VALUES } from './letters.js';
+import { normalizeWord } from './normalize.js';
 
 export const SIZE = 15;
 export const ROWS = 'ABCDEFGHIJKLMNO';
@@ -172,8 +173,9 @@ export function legalMoves(cells, placed, first) {
  * Rekonstruktion.
  * @param {object} opts
  * @param {Array}  opts.cells    parseBoard(...)
- * @param {Array<{player: string, score: number|null}>} opts.turns
- *        Züge in Spielreihenfolge; score null = Aussetzen/Tauschen (keine Steine)
+ * @param {Array<{player: string, score: number|null, word?: string}>} opts.turns
+ *        Züge in Spielreihenfolge; score null = Aussetzen/Tauschen (keine Steine);
+ *        word (optional) = eingetragenes Wort – muss unter den gebildeten Wörtern sein
  * @param {(word: string) => boolean} [opts.isWord]  Wortliste (optional)
  * @param {number} [opts.maxUnknown=6]   max. unbekannte Wörter pro Lösung
  * @param {number} [opts.maxSolutions=200]
@@ -183,6 +185,7 @@ export function legalMoves(cells, placed, first) {
 export function reconstruct({ cells, turns, isWord = () => true, maxUnknown = 6, maxSolutions = 200, maxNodes = 5e6 }) {
   const total = cells.filter(Boolean).length;
   const scoring = turns.map((t) => t.score != null);
+  const wanted = turns.map((t) => (t.word ? normalizeWord(t.word) : null));
   // Verbleibende Züge mit Steinen ab Position k (für Schranken)
   const movesLeft = new Array(turns.length + 1).fill(0);
   for (let k = turns.length - 1; k >= 0; k--) movesLeft[k] = movesLeft[k + 1] + (scoring[k] ? 1 : 0);
@@ -230,6 +233,7 @@ export function reconstruct({ cells, turns, isWord = () => true, maxUnknown = 6,
         for (const tiles of legalMoves(cells, placed, first)) {
           const res = scorePlacement(cells, placed, tiles);
           if (res.score !== turns[k].score) continue;
+          if (wanted[k] && !res.words.some((w) => w.word === wanted[k])) continue;
           const unknown = res.words.filter((w) => !known(w.word)).map((w) => w.word);
           if (unknown.length > unknownLeft) continue;
           for (const t of tiles) placed[t] = 1;

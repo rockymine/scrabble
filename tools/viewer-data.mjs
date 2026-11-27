@@ -72,13 +72,12 @@ function finalGrid(moves) {
 const games = [];
 
 // ---------- echte Partie ----------
-const partie = one('partie');
-if (partie) {
+for (const partie of all('partie')) {
   const g = JSON.parse(fs.readFileSync(partie, 'utf8'));
   const cells = parseBoard(g.board);
   const turns = [];
   const rounds = Math.max(...g.players.map((p) => g.scores[p].length));
-  for (let r = 0; r < rounds; r++) for (const p of g.players) if (r < g.scores[p].length) turns.push({ player: p, round: r + 1, score: g.scores[p][r] });
+  for (let r = 0; r < rounds; r++) for (const p of g.players) if (r < g.scores[p].length) turns.push({ player: p, round: r + 1, score: g.scores[p][r], word: g.words?.[p]?.[r] || null });
   const res = reconstruct({ cells, turns, isWord: (w) => words.has(w), maxUnknown: 4, maxSolutions: 100 });
   const ok = res.solutions.filter((s) => analyzeRacks(cells, s, g.players, g.leftovers).ok);
   const sol = ok[0];
@@ -100,11 +99,11 @@ if (partie) {
     bingo: !!m.bingo,
   }));
   const sums = g.players.map((p) => g.scores[p].reduce((s, x) => s + (x || 0), 0));
-  const LV = { K: 4, D: 1 };
+  const LV = { E: 1, N: 1, S: 1, I: 1, R: 1, T: 1, U: 1, A: 1, D: 1, H: 2, G: 2, L: 2, O: 2, M: 3, B: 3, W: 3, Z: 3, C: 4, F: 4, K: 4, P: 4, Ä: 6, J: 6, Ü: 6, V: 6, Ö: 8, X: 8, Q: 10, Y: 10 };
   const left = g.players.map((p) => [...(g.leftovers?.[p] || '')].reduce((s, t) => s + (LV[t] ?? 0), 0));
   const out = g.players.findIndex((p) => !g.leftovers?.[p]);
   games.push({
-    id: 'echt',
+    id: 'echt-' + (g.title || '').replace(/\D/g, '').slice(-8),
     kind: 'echt',
     title: g.title || 'Eure Partie',
     note: g.note || '',

@@ -17,6 +17,7 @@ import {
   parseBoard, reconstruct, describeMove, analyzeRacks, boardBefore, cellName, rackBounds,
 } from '../js/reconstruct.js';
 import { generateMoves } from '../js/movegen.js';
+import { parseInfoLine, applyRules, DEFAULT_RULES } from '../js/words.js';
 
 const args = process.argv.slice(2);
 const file = args.find((a) => !a.startsWith('--') && !/^\d+$/.test(a));
@@ -43,12 +44,38 @@ for (const s of Object.values(index.shards)) {
 }
 const isWord = (w) => words.has(w);
 
+// Für Vorschläge der Bewertung: nur Wörter, die nach den (Standard-)Hausregeln ohne
+// Einschränkung gelten – nichts Veraltetes, Regionales, Seltenes –, nichts Vulgäres und
+// nur geläufige Grundformen (≥ 3 Übersetzungen im Wiktionary; QI als bekannte Ausnahme)
+const infoMap = new Map();
+for (const m of Object.values(index.info || {})) {
+  for (const line of zlib.gunzipSync(fs.readFileSync(new URL(m.file, dir))).toString('utf8').split('\n')) {
+    const t = line.indexOf('\t');
+    if (t > 0) infoMap.set(line.slice(0, t), line);
+  }
+}
+const fairCache = new Map();
+const isFairWord = (w) => {
+  if (!words.has(w)) return false;
+  let r = fairCache.get(w);
+  if (r === undefined) {
+    const info = parseInfoLine(infoMap.get(w) || '');
+    const rude = (x) => x.marks.some((m) => /vulgär|abwertend/.test(m));
+    // ist das Wort selbst (Grundform) vulgär, fällt es ganz raus (FOTZE trotz Nebenform „Votze“)
+    const baseRude = info.some((x) => rude(x) && (x.forms || '').startsWith('Grundform'));
+    const ok = info.filter((x) => !rude(x) && x.translations >= 3);
+    r = w === 'QI' || (!baseRude && ok.length > 0 && applyRules(w, 'found', ok, { ...DEFAULT_RULES, rare: 'deny' }).verdict === 'ok');
+    fairCache.set(w, r);
+  }
+  return r;
+};
+
 // Zugreihenfolge: Runde für Runde in Sitzreihenfolge
 const turns = [];
 const rounds = Math.max(...game.players.map((p) => game.scores[p].length));
 for (let r = 0; r < rounds; r++) {
   for (const p of game.players) {
-    if (r < game.scores[p].length) turns.push({ player: p, round: r + 1, score: game.scores[p][r] });
+    if (r < game.scores[p].length) turns.push({ player: p, round: r + 1, score: game.scores[p][r], word: game.words?.[p]?.[r] || null });
   }
 }
 
@@ -123,28 +150,28 @@ if (flag('baenke')) {
 if (flag('bewerten')) {
   const sol = list[0].sol;
   const { emptyAfter: ea, racks: rk } = list[0].racks;
-  console.log(`\nBewertung (Lösung 1, Wörter nur aus der Wortliste):`);
+  console.log(`\nBewertung (Lösung 1; Vorschläge nur mit Wörtern, die nach den Hausregeln uneingeschränkt gelten):`);
   const rackNow = Object.fromEntries(game.players.map((p) => [p, [...(rk[p]?.tiles || [])]]));
   sol.forEach((m, k) => {
     const t = turns[k];
     if (m.score == null) {
       if (ea !== null && k > ea) {
         const grid = boardBefore(cells, sol, k);
-        const best = generateMoves(grid, rackNow[t.player], isWord)[0];
+        const best = generateMoves(grid, rackNow[t.player], isFairWord)[0];
         console.log(`R${t.round} ${t.player} –  Bank ${rackNow[t.player].join('')}: ${best ? `möglich wäre ${best.words.map((w) => w.word).join('+')} ${best.score}` : 'kein Zug möglich'}`);
       }
       return;
     }
     const grid = boardBefore(cells, sol, k);
     const own = m.tiles.map((i) => (cells[i].blank ? '?' : cells[i].letter));
-    const sameTiles = generateMoves(grid, own, isWord, { useAll: true });
+    const sameTiles = generateMoves(grid, own, isFairWord, { useAll: true });
     const bestSame = sameTiles[0];
     let line = `R${t.round} ${t.player} ${String(m.score).padStart(3)} ${describeMove(cells, m).main.padEnd(10)}`;
     if (bestSame && bestSame.score > m.score) {
       line += `  gleiche Steine besser: ${bestSame.words.map((w) => w.word).join('+')} ${bestSame.score} @ ${bestSame.tiles.map(cellName).join(' ')} (+${bestSame.score - m.score})`;
     }
     if (ea !== null && k > ea) {
-      const full = generateMoves(grid, rackNow[t.player], isWord)[0];
+      const full = generateMoves(grid, rackNow[t.player], isFairWord)[0];
       if (full && full.score > m.score) line += `  | mit ganzer Bank ${rackNow[t.player].join('')}: ${full.words.map((w) => w.word).join('+')} ${full.score}`;
       for (const x of own) rackNow[t.player].splice(rackNow[t.player].indexOf(x), 1);
     }

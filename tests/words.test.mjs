@@ -77,6 +77,8 @@ test('Hausregeln: Kurzwörter, seltene Wörter, eigene Ausnahmen', () => {
   assert.equal(applyRules('THEIL', 'found', info('THEIL'), DEFAULT_RULES).verdict, 'deny');
   assert.equal(applyRules('DÄZ', 'found', info('DÄZ'), DEFAULT_RULES).verdict, 'deny');
   assert.equal(applyRules('STRASSE', 'found', info('STRASSE'), DEFAULT_RULES).verdict, 'ok');
+  // benannte Mundarten zählen als regional (FAIDICH = schwäbisch für Feiertag)
+  assert.equal(applyRules('FAIDICH', 'found', info('FAIDICH'), DEFAULT_RULES).verdict, 'deny');
   // QI: unmarkiert → erlaubt; HAUS hat zusätzlich eine veraltete Nebenbedeutung → trotzdem erlaubt
   assert.equal(applyRules('QI', 'found', info('QI'), DEFAULT_RULES).verdict, 'ok');
   assert.equal(applyRules('HAUS', 'found', info('HAUS'), DEFAULT_RULES).verdict, 'ok');
